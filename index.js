@@ -103,7 +103,7 @@ SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, r
         message += 'retry: ' + retry + '\n'
 
     if (data) {
-        // SSE supports only string transfer,
+        // SSE supports string transfer only,
         // so try to serialize other types
         if (typeof data !== 'string') {
             if (data instanceof Buffer)
@@ -155,7 +155,7 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
         callback = noop
 
     if (typeof eventOrOptions === 'object') {
-        assert(!data, 'only one can be provided from `options` and `data`. Use `optiosn.data` instead.')
+        assert(!data, 'only one can be provided from `options` and `data`. Use `options.data` instead.')
 
         this._composeMessage(
             eventOrOptions.id,
