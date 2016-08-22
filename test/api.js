@@ -7,7 +7,7 @@ var http     = require('http'),
     test     = require('tap'),
     sse      = new require('../')
 
-test.plan(17)
+test.plan(19)
 
 test.type(sse, 'function', 'main export should be a function')
 test.type(sse.Server, 'function', 'constructor should be exposed')
@@ -19,7 +19,13 @@ test.equal(
     'package version should be exposed'
 )
 
-var server = sse.Server()
+var server
+test.doesNotThrow(
+    function () {
+         server = sse.Server()
+    },
+    '`new` keyword should not be necessary'
+)
 
 test.ok(server instanceof sse, '`new` keyword should not be necessary')
 test.ok(server instanceof EE, 'server should be an EventEmitter instance')
@@ -38,6 +44,9 @@ function FakeResponse() {
         setNoDelay: noop
     }
     this.writeHead = noop
+    this.write = function (data, callback) {
+        callback()
+    }
 }
 inherits(FakeResponse, http.ServerResponse)
 
@@ -94,8 +103,6 @@ test.test('subscriptions', function (test) {
 test.test('prototype extension', function (test) {
     var proto = http.ServerResponse.prototype
 
-    test.plan(9)
-
     test.throws(
         function () {
             sse.proto()
@@ -127,5 +134,107 @@ test.test('prototype extension', function (test) {
     test.same(
         server.rooms, { test: [ res2 ] },
         'subscribe via proto methods should work'
+    )
+
+    test.end()
+})
+
+test.test('`publish()` signatures', function (test) {
+    test.plan(18)
+
+    test.throws(
+        function () {
+            server.publish()
+        },
+        AE, '`publish()` should require at least two arguments'
+    )
+    test.throws(
+        function () {
+            server.publish('test')
+        },
+        AE, '`publish()` should require at least two arguments'
+    )
+    test.throws(
+        function () {
+            server.publish(true, 'test')
+        },
+        AE, '`publish()` should require a valid room name'
+    )
+    test.throws(
+        function () {
+            server.publish('test', true)
+        },
+        AE, '`publish()` should require a valid event name or options object'
+    )
+    test.doesNotThrow(
+        function () {
+            server.publish('test', 'test')
+        },
+        '`publish()` should accept valid arguments'
+    )
+    test.doesNotThrow(
+        function () {
+            server.publish('test', {})
+        },
+        '`publish()` should accept valid arguments'
+    )
+    test.doesNotThrow(
+        function () {
+            server.publish('test', {}, noop)
+        },
+        '`publish()` should accept valid arguments'
+    )
+    test.throws(
+        function () {
+            server.publish('test', {}, {}, noop)
+        },
+        AE, '`publish()` should not accept both an options and a data argument'
+    )
+    test.doesNotThrow(
+        function () {
+            server.publish('test', 'test', {})
+        },
+        '`publish()` should accept valid arguments'
+    )
+    test.doesNotThrow(
+        function () {
+            server.publish('test', 'test', {}, noop)
+        },
+        '`publish()` should accept valid arguments'
+    )
+    test.doesNotThrow(
+        function () {
+            server.publish('test', 'test', 'test', noop)
+        },
+        '`publish()` should accept valid arguments'
+    )
+    test.doesNotThrow(
+        function () {
+            server.publish('test', 'test', new Buffer('test'), noop)
+        },
+        '`publish()` should accept valid arguments'
+    )
+
+    function onerror(err) {
+        test.pass('error handler should be called')
+        test.type(err, Error)
+    }
+    var circular = {}
+    circular.test = circular
+    server.once('error', onerror)
+    test.doesNotThrow(
+        function () {
+            server.publish('test', 'test', circular)
+        },
+        'an error event should be emitted'
+    )
+    test.doesNotThrow(
+        function () {
+            // note: must add an error handler to prevent EventEmitter to throw,
+            // because we used `once()` in the previous test
+            server.once('error', noop)
+            server.publish('test', 'test', circular, onerror)
+        },
+        'callback should be fired with an error'
     )
 })
