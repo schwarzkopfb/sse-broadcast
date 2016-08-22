@@ -38,6 +38,8 @@ Object.defineProperties(exports, {
     }
 })
 
+function noop() {}
+
 /* instance methods */
 
 SSEBroadcaster.prototype.subscribe = function subscribe(room, res) {
@@ -88,21 +90,39 @@ SSEBroadcaster.prototype.unsubscribe = function unsubscribe(room, res) {
     }
 }
 
-SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, retry, data) {
-    var message = 'event: ' + event + '\n'
+SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, retry, data, callback) {
+    var self    = this,
+        message = 'event: ' + event + '\n'
 
     if (id)
         message += 'id: ' + id + '\n'
-
-    if (data)
-        message += 'data: ' + data + '\n'
 
     if (!retry)
         retry = this.retry
     if (retry)
         message += 'retry: ' + retry + '\n'
 
-    return message += '\n'
+    if (data) {
+        // SSE supports only string transfer,
+        // so try to serialize other types
+        if (typeof data !== 'string') {
+            if (data instanceof Buffer)
+                data = data.toString('utf8')
+            else try {
+                // note: it throws if `data` contains a circular reference
+                data = JSON.stringify(data)
+            }
+            catch (ex) {
+                self.emit('error', ex)
+                return callback(ex)
+            }
+        }
+
+        message += 'data: ' + data + '\n'
+    }
+
+    // todo: optional compression
+    callback(null, message += '\n')
 }
 
 /**
@@ -121,24 +141,32 @@ SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, r
  * @param {function(Error?)} [callback]
  */
 SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, callback) {
+    var self = this
+
     assert(arguments.length >= 2, '`publish()` requires at least two arguments')
-    assert.equals(typeof room, 'string', 'first argument must specify the room name')
+    assert.equal(typeof room, 'string', 'first argument must specify the room name')
     assert(eventOrOptions, 'second argument must specify the event name or options')
 
     if (typeof data === 'function') {
         callback = data
         data     = null
     }
+    else if (!callback)
+        callback = noop
 
-    if (typeof eventOrOptions === 'object')
-        message = this._composeMessage(
+    if (typeof eventOrOptions === 'object') {
+        assert(!data, 'only one can be provided from `options` and `data`. Use `optiosn.data` instead.')
+
+        this._composeMessage(
             eventOrOptions.id,
             eventOrOptions.event,
             eventOrOptions.retry,
-            eventOrOptions.data
+            eventOrOptions.data,
+            oncomposed
         )
+    }
     else if (typeof eventOrOptions === 'string')
-        message = this._composeMessage(null, eventOrOptions, null, data)
+        this._composeMessage(null, eventOrOptions, null, data, oncomposed)
     else
         assert.fail(
             typeof eventOrOptions, 'string or object',
@@ -146,36 +174,24 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
             '==='
         )
 
-    var list = this.rooms[ room ]
+    function oncomposed(err, message) {
+        if (err)
+            return callback(err)
 
-    if (list) {
-        // SSE supports only string transfer,
-        // so try to serialize other types
-        if (typeof data !== 'string') {
-            if (data instanceof Buffer)
-                data = data.toString('utf8')
-            else try {
-                // note: it throws if `data` contains a circular reference
-                data = JSON.stringify(data)
-            }
-            catch (ex) {
-                this.emit('error', ex)
+        var list = self.rooms[ room ]
 
-                if (typeof callback === 'function')
-                    return callback(ex)
-            }
-        }
+        if (list) {
+            var pending = list.length
 
-        var pending = list.length
-
-        if (pending)
-            list.forEach(function (res) {
-                res.write(message, function done() {
-                    --pending || callback(null)
+            if (pending)
+                list.forEach(function (res) {
+                    res.write(message, function done() {
+                        --pending || callback(null)
+                    })
                 })
-            })
-        else
-            process.nextTick(callback, null)
+            else
+                process.nextTick(callback, null)
+        }
     }
 }
 
