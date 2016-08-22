@@ -122,6 +122,9 @@ SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, r
     }
 
     // todo: optional compression
+    // todo: compression requires 'content-encoding' header -> some refactor needed,
+    //       because currently we're gonig to send headers on 'subscribe' but 'compression' module
+    //       needs to manipulate headers later (is it sure?)
     callback(null, message += '\n')
 }
 
