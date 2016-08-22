@@ -1,0 +1,38 @@
+{
+  "name": "sse-broadcast",
+  "version": "0.0.1",
+  "description": "Server-Sent Events via a Publish/Subscribe API for Node.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "tap test/*.js",
+    "coverage": "npm test -- --cov --coverage-report=lcov"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schwarzkopfb/sse-broadcast.git"
+  },
+  "keywords": [
+    "sse",
+    "server",
+    "sent",
+    "events",
+    "broadcast",
+    "pubsub",
+    "pub",
+    "sub",
+    "publish",
+    "subscribe"
+  ],
+  "author": "Schwarzkopf Balázs <schwarzkopfb@icloud.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/schwarzkopfb/sse-broadcast/issues"
+  },
+  "homepage": "https://github.com/schwarzkopfb/sse-broadcast#readme",
+  "dependencies": {
+    "on-finished": "^2.3.0"
+  },
+  "devDependencies": {
+    "tap": "^6.3.2"
+  }
+}
