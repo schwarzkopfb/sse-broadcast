@@ -94,7 +94,7 @@ test.test('subscriptions', function (test) {
 test.test('prototype extension', function (test) {
     var proto = http.ServerResponse.prototype
 
-    test.plan(13)
+    test.plan(9)
 
     test.throws(
         function () {
@@ -115,19 +115,15 @@ test.test('prototype extension', function (test) {
         '`proto()` should accept a broadcaster instance'
     )
 
-    test.type(proto.join, 'function', 'prototype should be extended with `join()`')
-    test.type(proto.join.length, 1, '`join()` should accept one argument')
     test.type(proto.subscribe, 'function', 'prototype should be extended with `subscribe()`')
     test.type(proto.subscribe.length, 1, '`subscribe()` should accept one argument')
-    test.type(proto.leave, 'function', 'prototype should be extended with `leave()`')
-    test.type(proto.leave.length, 1, '`leave()` should accept one argument')
     test.type(proto.unsubscribe, 'function', 'prototype should be extended with `unsubscribe()`')
     test.type(proto.unsubscribe.length, 1, '`unsubscribe()` should accept one argument')
 
-    res.leave('test')
+    res.unsubscribe('test')
     res2.unsubscribe('test')
     test.same(server.rooms, {}, 'unsubscribe via proto methods should work')
-    res2.join('test')
+    res2.subscribe('test')
     test.same(
         server.rooms, { test: [ res2 ] },
         'subscribe via proto methods should work'
