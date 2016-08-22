@@ -34,7 +34,7 @@ Object.defineProperties(exports, {
 
     proto: {
         enumerable: true,
-        value: setupResponseProto
+        value: extendResponseProto
     }
 })
 
@@ -88,7 +88,64 @@ SSEBroadcaster.prototype.unsubscribe = function unsubscribe(room, res) {
     }
 }
 
-SSEBroadcaster.prototype.publish = function publish(room, event, data, callback) {
+SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, retry, data) {
+    var message = 'event: ' + event + '\n'
+
+    if (id)
+        message += 'id: ' + id + '\n'
+
+    if (data)
+        message += 'data: ' + data + '\n'
+
+    if (!retry)
+        retry = this.retry
+    if (retry)
+        message += 'retry: ' + retry + '\n'
+
+    return message += '\n'
+}
+
+/**
+ * Send a message to all the subscribers of a given room.
+ *
+ * @param {string} room Name of the room.
+ *
+ * @param {string|object} eventOrOptions Event name or an options object that specifies the message.
+ * @param {string} [eventOrOptions.id]    Optional event identifier.
+ * @param {string} eventOrOptions.event   Event name.
+ * @param {string} [eventOrOptions.data]  Optional event payload.
+ * @param {string} [eventOrOptions.retry] Optional retry time for the receiver.
+ *
+ * @param {*} [data] Optional event payload.
+ *
+ * @param {function(Error?)} [callback]
+ */
+SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, callback) {
+    assert(arguments.length >= 2, '`publish()` requires at least two arguments')
+    assert.equals(typeof room, 'string', 'first argument must specify the room name')
+    assert(eventOrOptions, 'second argument must specify the event name or options')
+
+    if (typeof data === 'function') {
+        callback = data
+        data     = null
+    }
+
+    if (typeof eventOrOptions === 'object')
+        message = this._composeMessage(
+            eventOrOptions.id,
+            eventOrOptions.event,
+            eventOrOptions.retry,
+            eventOrOptions.data
+        )
+    else if (typeof eventOrOptions === 'string')
+        message = this._composeMessage(null, eventOrOptions, null, data)
+    else
+        assert.fail(
+            typeof eventOrOptions, 'string or object',
+            'second argument must specify the event name or options',
+            '==='
+        )
+
     var list = this.rooms[ room ]
 
     if (list) {
@@ -113,14 +170,9 @@ SSEBroadcaster.prototype.publish = function publish(room, event, data, callback)
 
         if (pending)
             list.forEach(function (res) {
-                res.write(
-                    'event: ' + event + '\n' +
-                    'data: ' + data + '\n\n',
-
-                    function done() {
-                        --pending || callback(null)
-                    }
-                )
+                res.write(message, function done() {
+                    --pending || callback(null)
+                })
             })
         else
             process.nextTick(callback, null)
@@ -129,15 +181,15 @@ SSEBroadcaster.prototype.publish = function publish(room, event, data, callback)
 
 /* prototype extension helpers */
 
-function setupResponseProto(broadcaster) {
+function extendResponseProto(broadcaster) {
     assert(
         broadcaster instanceof SSEBroadcaster,
         'prototype extension requires a broadcaster instance'
     )
 
     var proto = http.ServerResponse.prototype
-    proto.join  = proto.subscribe   = subscribeProto(broadcaster)
-    proto.leave = proto.unsubscribe = unsubscribeProto(broadcaster)
+    proto.subscribe   = subscribeProto(broadcaster)
+    proto.unsubscribe = unsubscribeProto(broadcaster)
 }
 
 function subscribeProto(broadcaster) {
