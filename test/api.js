@@ -44,7 +44,7 @@ function FakeResponse() {
     }
     this.writeHead = noop
     this.setHeader = noop
-    this.write = function (data, callback) {
+    this.write = function (data, encoding, callback) {
         callback()
     }
 }

@@ -190,7 +190,7 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
                             self.emit('warning', 'headers are already sent', res)
                     }
 
-                    res.write(message, function done() {
+                    res.write(message, 'utf8', function done() {
                         --pending || callback(null)
                     })
 
