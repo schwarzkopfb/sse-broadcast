@@ -6,14 +6,25 @@ var http         = require('http'),
     assert       = require('assert'),
     inherits     = require('util').inherits,
     EventEmitter = require('events').EventEmitter,
-    onFinished   = require('on-finished')
+    onFinished   = require('on-finished'),
+    compression  = require('compression')
 
-function SSEBroadcaster() {
+function SSEBroadcaster(options) {
     if (!(this instanceof SSEBroadcaster))
         return new SSEBroadcaster
 
     EventEmitter.call(this)
-    this.rooms = {}
+
+    var opts     = options || {}
+    this.rooms   = {}
+    this.options = opts
+
+    if (opts.compression === true)
+        this._compress = compression()
+    else if (opts.compression)
+        this._compress = compression(opts.compression)
+    else
+        this._compress = nocompress
 }
 
 inherits(SSEBroadcaster, EventEmitter)
@@ -39,14 +50,27 @@ Object.defineProperties(exports, {
 })
 
 function noop() {}
+function nocompress(req, res, next) {
+    next()
+}
 
 /**
  * Subscribe for messages in a given room.
  *
  * @param {string} room Room name to subscribe for.
+ * @param {http.IncomingMessage} [req] Request object.
  * @param {http.ServerResponse} res Response object to send messages through.
  */
-SSEBroadcaster.prototype.subscribe = function subscribe(room, res) {
+SSEBroadcaster.prototype.subscribe = function subscribe(room, req, res) {
+    if (arguments.length === 2)
+        res = req
+
+    if (this.options.compression) {
+        assert(req, 'request is required when compression is enabled')
+        assert(req instanceof http.IncomingMessage, 'request must be a descendant of `http.IncomingMessage`')
+        res.req = req
+    }
+
     var list = this.rooms[ room ]
 
     // room not exists, create it!
@@ -99,47 +123,6 @@ SSEBroadcaster.prototype.unsubscribe = function unsubscribe(room, res) {
     return this
 }
 
-SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, retry, data, callback) {
-    var self    = this,
-        message = ''
-
-    if (id)
-        message += 'id: ' + id + '\n'
-
-    if (event)
-        message += 'event: ' + event + '\n'
-
-    if (!retry)
-        retry = this.retry
-    if (retry)
-        message += 'retry: ' + retry + '\n'
-
-    if (data) {
-        // SSE supports string transfer only,
-        // so try to serialize other types
-        if (typeof data !== 'string') {
-            if (data instanceof Buffer)
-                data = data.toString('utf8')
-            else try {
-                // note: it throws if `data` contains a circular reference
-                data = JSON.stringify(data)
-            }
-            catch (ex) {
-                self.emit('error', ex)
-                return callback(ex)
-            }
-        }
-
-        message += 'data: ' + data + '\n'
-    }
-
-    if (message)
-        message += '\n'
-
-    // todo: optional compression
-    callback(null, message)
-}
-
 /**
  * Send a message to all the subscribers of a given room.
  *
@@ -153,7 +136,8 @@ SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, r
  * @param {function(Error?)} [callback]
  */
 SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, callback) {
-    var self = this
+    var self     = this,
+        compress = this.options.compression
 
     assert(arguments.length >= 2, '`publish()` requires at least two arguments')
     assert.equal(typeof room, 'string', 'first argument must specify the room name')
@@ -195,24 +179,71 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
             var pending = list.length
 
             list.forEach(function (res) {
-                // write SSE response headers if possible
-                if (!res._sseHeadersSent) {
-                    res._sseHeadersSent = true
+                self._compress(res.req, res, function () {
+                    // write SSE response headers if possible
+                    if (!res._sseHeadersSent) {
+                        res._sseHeadersSent = true
 
-                    if (!res.headersSent)
-                        res.writeHead(200)
-                    else
-                        self.emit('warning', 'headers are already sent', res)
-                }
+                        if (!res.headersSent)
+                            res.writeHead(200)
+                        else
+                            self.emit('warning', 'headers are already sent', res)
+                    }
 
-                res.write(message, function done() {
-                    --pending || callback(null)
+                    res.write(message, function done() {
+                        --pending || callback(null)
+                    })
+
+                    // force the partially-compressed response
+                    // to be flushed to the client
+                    if (compress)
+                        res.flush()
                 })
             })
         }
     }
 
     return this
+}
+
+SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, retry, data, callback) {
+    var self    = this,
+        message = ''
+
+    if (id)
+        message += 'id: ' + id + '\n'
+
+    if (event)
+        message += 'event: ' + event + '\n'
+
+    if (!retry)
+        retry = this.options.retry
+    if (retry)
+        message += 'retry: ' + retry + '\n'
+
+    if (data) {
+        // SSE supports string transfer only,
+        // so try to serialize other types
+        if (typeof data !== 'string') {
+            if (data instanceof Buffer)
+                data = data.toString('utf8')
+            else try {
+                // note: it throws if `data` contains a circular reference
+                data = JSON.stringify(data)
+            }
+            catch (ex) {
+                self.emit('error', ex)
+                return callback(ex)
+            }
+        }
+
+        message += 'data: ' + data + '\n'
+    }
+
+    if (message)
+        message += '\n'
+
+    callback(null, message)
 }
 
 /* prototype extension helpers */
@@ -244,8 +275,12 @@ function publish(broadcaster) {
 }
 
 function subscribe(broadcaster) {
-    return function subscribe(room) {
-        broadcaster.subscribe(room, this)
+    return function subscribe(room, req) {
+        if (arguments.length <= 1)
+            broadcaster.subscribe(room, this)
+        else
+            broadcaster.subscribe(room, req, this)
+
         return this
     }
 }

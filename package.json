@@ -30,6 +30,7 @@
   },
   "homepage": "https://github.com/schwarzkopfb/sse-broadcast#readme",
   "dependencies": {
+    "compression": "^1.6.2",
     "on-finished": "^2.3.0"
   },
   "devDependencies": {
