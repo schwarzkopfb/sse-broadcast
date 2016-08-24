@@ -1,7 +1,7 @@
 {
   "name": "sse-broadcast",
   "version": "0.0.1",
-  "description": "Server-Sent Events via a Publish/Subscribe API for Node.js",
+  "description": "Server-Sent Events through a Publish/Subscribe API for Node.js",
   "main": "index.js",
   "scripts": {
     "test": "tap test/*.js",

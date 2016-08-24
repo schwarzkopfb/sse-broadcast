@@ -6,7 +6,7 @@ var fs   = require('fs'),
     sse  = require('../'),
     exp  = fs.readFileSync(__dirname + '/messages.txt').toString(),
     app  = http.createServer(listener),
-    b    = new sse.Server
+    b    = new sse.Broadcaster
 
 function listener(req, res) {
     // send to absent room

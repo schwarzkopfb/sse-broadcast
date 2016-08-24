@@ -20,9 +20,14 @@ inherits(SSEBroadcaster, EventEmitter)
 
 // static members
 Object.defineProperties(exports, {
-    Server: {
+    Broadcaster: {
         enumerable: true,
         value: SSEBroadcaster
+    },
+
+    proto: {
+        enumerable: true,
+        value: extendResponseProto
     },
 
     version: {
@@ -30,11 +35,6 @@ Object.defineProperties(exports, {
         get: function () {
             return require(__dirname + '/package.json').version
         }
-    },
-
-    proto: {
-        enumerable: true,
-        value: extendResponseProto
     }
 })
 

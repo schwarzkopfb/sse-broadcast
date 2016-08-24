@@ -10,8 +10,8 @@ var http     = require('http'),
 test.plan(21)
 
 test.type(sse, 'function', 'main export should be a function')
-test.type(sse.Server, 'function', 'constructor should be exposed')
-test.equal(sse, sse.Server, 'constructor should be the main export')
+test.type(sse.Broadcaster, 'function', 'constructor should be exposed')
+test.equal(sse, sse.Broadcaster, 'constructor should be the main export')
 test.type(sse.proto, 'function', 'prototype extender method should be exposed')
 test.equal(sse.proto.length, 1, 'prototype extender method should accept one argument')
 test.equal(
@@ -22,7 +22,7 @@ test.equal(
 var server
 test.doesNotThrow(
     function () {
-         server = sse.Server()
+         server = sse.Broadcaster()
     },
     '`new` keyword should not be necessary'
 )
