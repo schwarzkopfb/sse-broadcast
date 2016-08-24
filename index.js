@@ -40,8 +40,12 @@ Object.defineProperties(exports, {
 
 function noop() {}
 
-/* instance methods */
-
+/**
+ * Subscribe for messages in a given room.
+ *
+ * @param {string} room Room name to subscribe for.
+ * @param {http.ServerResponse} res Response object to send messages through.
+ */
 SSEBroadcaster.prototype.subscribe = function subscribe(room, res) {
     var list = this.rooms[ room ]
 
@@ -59,20 +63,23 @@ SSEBroadcaster.prototype.subscribe = function subscribe(room, res) {
     // disable response buffering to
     // flush chunks immediately after writes
     res.socket.setNoDelay(true)
-    // write SSE response headers
-    if (!res.headersSent)
-        res.writeHead(200, {
-            'connection': 'keep-alive',
-            'content-type': 'text/event-stream',
-            'cache-control': 'no-cache'
-        })
-    else
-        this.emit('warning', 'headers already sent', res)
+    // set SSE headers
+    res.setHeader('connection', 'keep-alive')
+    res.setHeader('content-type', 'text/event-stream')
+    res.setHeader('cache-control', 'no-cache')
 
     // unsubscribe automatically when the response has been finished
     onFinished(res, this.unsubscribe.bind(this, room, res))
+
+    return this
 }
 
+/**
+ * Remove a subscriber from a given room.
+ *
+ * @param {string} room Room name.
+ * @param {http.ServerResponse} res Subscriber to to remove.
+ */
 SSEBroadcaster.prototype.unsubscribe = function unsubscribe(room, res) {
     var list = this.rooms[ room ]
 
@@ -88,14 +95,19 @@ SSEBroadcaster.prototype.unsubscribe = function unsubscribe(room, res) {
         if (!list.length)
             delete this.rooms[ room ]
     }
+
+    return this
 }
 
 SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, retry, data, callback) {
     var self    = this,
-        message = 'event: ' + event + '\n'
+        message = ''
 
     if (id)
         message += 'id: ' + id + '\n'
+
+    if (event)
+        message += 'event: ' + event + '\n'
 
     if (!retry)
         retry = this.retry
@@ -121,26 +133,23 @@ SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, r
         message += 'data: ' + data + '\n'
     }
 
+    if (message)
+        message += '\n'
+
     // todo: optional compression
-    // todo: compression requires 'content-encoding' header -> some refactor needed,
-    //       because currently we're gonig to send headers on 'subscribe' but 'compression' module
-    //       needs to manipulate headers later (is it sure?)
-    callback(null, message += '\n')
+    callback(null, message)
 }
 
 /**
  * Send a message to all the subscribers of a given room.
  *
  * @param {string} room Name of the room.
- *
  * @param {string|object} eventOrOptions Event name or an options object that specifies the message.
  * @param {string} [eventOrOptions.id]    Optional event identifier.
- * @param {string} eventOrOptions.event   Event name.
+ * @param {string} [eventOrOptions.event] Event name.
  * @param {string} [eventOrOptions.data]  Optional event payload.
  * @param {string} [eventOrOptions.retry] Optional retry time for the receiver.
- *
  * @param {*} [data] Optional event payload.
- *
  * @param {function(Error?)} [callback]
  */
 SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, callback) {
@@ -173,8 +182,7 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
     else
         assert.fail(
             typeof eventOrOptions, 'string or object',
-            'second argument must specify the event name or options',
-            '==='
+            'second argument must specify the event name or options', '==='
         )
 
     function oncomposed(err, message) {
@@ -186,16 +194,25 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
         if (list) {
             var pending = list.length
 
-            if (pending)
-                list.forEach(function (res) {
-                    res.write(message, function done() {
-                        --pending || callback(null)
-                    })
+            list.forEach(function (res) {
+                // write SSE response headers if possible
+                if (!res._sseHeadersSent) {
+                    res._sseHeadersSent = true
+
+                    if (!res.headersSent)
+                        res.writeHead(200)
+                    else
+                        self.emit('warning', 'headers are already sent', res)
+                }
+
+                res.write(message, function done() {
+                    --pending || callback(null)
                 })
-            else
-                process.nextTick(callback, null)
+            })
         }
     }
+
+    return this
 }
 
 /* prototype extension helpers */
@@ -207,18 +224,35 @@ function extendResponseProto(broadcaster) {
     )
 
     var proto = http.ServerResponse.prototype
-    proto.subscribe   = subscribeProto(broadcaster)
-    proto.unsubscribe = unsubscribeProto(broadcaster)
+    proto.publish     = publish(broadcaster)
+    proto.subscribe   = subscribe(broadcaster)
+    proto.unsubscribe = unsubscribe(broadcaster)
+
+    return broadcaster
 }
 
-function subscribeProto(broadcaster) {
-    return function subscribe(room) {
-        broadcaster.subscribe(room, this)
+function publish(broadcaster) {
+    return function publish(room, eventOrOptions, data, callback) {
+        if (arguments.length < 2)
+            // too few arguments
+            broadcaster.publish()
+        else
+            broadcaster.publish(room, eventOrOptions, data, callback)
+
+        return this
     }
 }
 
-function unsubscribeProto(broadcaster) {
+function subscribe(broadcaster) {
+    return function subscribe(room) {
+        broadcaster.subscribe(room, this)
+        return this
+    }
+}
+
+function unsubscribe(broadcaster) {
     return function unsubscribe(room) {
         broadcaster.unsubscribe(room, this)
+        return this
     }
 }

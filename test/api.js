@@ -7,7 +7,7 @@ var http     = require('http'),
     test     = require('tap'),
     sse      = new require('../')
 
-test.plan(19)
+test.plan(21)
 
 test.type(sse, 'function', 'main export should be a function')
 test.type(sse.Server, 'function', 'constructor should be exposed')
@@ -39,11 +39,11 @@ test.equal(server.publish.length, 4, '`publish()` method should accept four argu
 
 function noop() {}
 function FakeResponse() {
-    // http.ServerResponse.call(this)
     this.socket = {
         setNoDelay: noop
     }
     this.writeHead = noop
+    this.setHeader = noop
     this.write = function (data, callback) {
         callback()
     }
@@ -54,8 +54,6 @@ var res  = new FakeResponse,
     res2 = new FakeResponse
 
 test.test('subscriptions', function (test) {
-    test.plan(11)
-
     server.subscribe('test', res)
     test.same(server.rooms, { test: [ res ] }, 'subscription should be stored')
     server.subscribe('test', res)
@@ -91,16 +89,23 @@ test.test('subscriptions', function (test) {
         'empty room should be removed'
     )
 
-    server.on('warning', function (description, response) {
-        test.pass('warning event should be emitted if headers are already sent')
-        test.equal(description, 'headers already sent')
-        test.equal(response, res)
-    })
-    Object.defineProperty(res, 'headersSent', { value: true })
-    server.subscribe('test', res)
+    test.end()
 })
 
-test.test('prototype extension', function (test) {
+test.test('warning', function (test) {
+    test.plan(3)
+
+    server.on('warning', function (description, response) {
+        test.pass('warning event should be emitted if headers are already sent')
+        test.equal(description, 'headers are already sent')
+        test.equal(response, res2)
+    })
+    Object.defineProperty(res2, 'headersSent', { value: true, writable: true })
+    server.publish('test', 'test')
+    res2.headersSent = false
+})
+
+test.test('convenience methods', function (test) {
     var proto = http.ServerResponse.prototype
 
     test.throws(
@@ -122,6 +127,8 @@ test.test('prototype extension', function (test) {
         '`proto()` should accept a broadcaster instance'
     )
 
+    test.type(proto.publish, 'function', 'prototype should be extended with `subscribe()`')
+    test.type(proto.publish.length, 4, '`publish()` should accept one argument')
     test.type(proto.subscribe, 'function', 'prototype should be extended with `subscribe()`')
     test.type(proto.subscribe.length, 1, '`subscribe()` should accept one argument')
     test.type(proto.unsubscribe, 'function', 'prototype should be extended with `unsubscribe()`')
@@ -135,13 +142,23 @@ test.test('prototype extension', function (test) {
         server.rooms, { test: [ res2 ] },
         'subscribe via proto methods should work'
     )
+    test.throws(
+        function () {
+            res.publish()
+        },
+        AE, 'arument count should be asserted'
+    )
+    test.doesNotThrow(
+        function () {
+            res.publish('test', 'test')
+        },
+        'arument count should be asserted'
+    )
 
     test.end()
 })
 
 test.test('`publish()` signatures', function (test) {
-    test.plan(18)
-
     test.throws(
         function () {
             server.publish()
@@ -237,4 +254,19 @@ test.test('`publish()` signatures', function (test) {
         },
         'callback should be fired with an error'
     )
+
+    test.end()
+})
+
+test.test('chaining', function (test) {
+    test.equal(res.publish('test', 'test'), res, '`res.publish()` should be chainable')
+    test.equal(res.subscribe('test'), res, '`res.subscribe()` should be chainable')
+    test.equal(res.unsubscribe('test'), res, '`res.unsubscribe()` should be chainable')
+
+    test.equal(sse.proto(server), server, '`proto()` should be chainable')
+    test.equal(server.publish('test', 'test'), server, '`publish()` should be chainable')
+    test.equal(server.subscribe('test', res), server, '`subscribe()` should be chainable')
+    test.equal(server.unsubscribe('test', res), server, '`unsubscribe()` should be chainable')
+
+    test.end()
 })
