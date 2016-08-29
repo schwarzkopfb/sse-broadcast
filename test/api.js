@@ -1,7 +1,5 @@
 'use strict'
 
-Object.prototype.extension = 'this should not mess up anything'
-
 // make tests work on Node <1
 process.nextTick = require('process.nexttick')
 
