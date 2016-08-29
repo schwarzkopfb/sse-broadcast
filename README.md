@@ -9,18 +9,20 @@
 
 Server-Sent Events through a Publish/Subscribe API for Node.js.
 
-# Usage
+## Usage
+
+### With [Express](http://expressjs.com/)
 
 ```js
 const app = require('express')(),
       sse = require('sse-broadcast')()
 
 app.get('/events', function (req, res) {
-    sse.subscribe('happenings', res)
+    sse.subscribe('channel', res)
 })
 
 app.post('/event/:type', function (req, res) {
-    sse.publish('happenings', req.params.type, 'whoo! something happened!')
+    sse.publish('channel', req.params.type, 'whoo! something happened!')
     res.send()
 })
 
@@ -28,6 +30,10 @@ app.listen(3333)
 ```
 
 ![demo](/assets/demo.gif)
+
+For examples of usage with [Koa](http://koajs.com/) or
+a vanilla [Node.js](https://nodejs.org/) server,
+see the [examples](/examples) folder.
 
 ## Installation
 

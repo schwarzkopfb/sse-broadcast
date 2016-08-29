@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Server-Sent Events through a Publish/Subscribe API for Node.js",
   "main": "index.js",
+  "files": [ "index.js" ],
   "scripts": {
     "test": "tap test/*.js",
     "coverage": "npm test -- --cov --coverage-report=lcov"
@@ -21,7 +22,9 @@
     "pub",
     "sub",
     "publish",
-    "subscribe"
+    "subscribe",
+    "channel",
+    "room"
   ],
   "author": "Schwarzkopf Balázs <schwarzkopfb@icloud.com>",
   "license": "MIT",
@@ -34,6 +37,9 @@
     "on-finished": "^2.3.0"
   },
   "devDependencies": {
+    "express": "^4.14.0",
+    "koa": "^1.2.1",
+    "koa-router": "^5.4.0",
     "tap": "^6.3.2"
   }
 }
