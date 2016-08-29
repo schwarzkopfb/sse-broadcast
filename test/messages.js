@@ -1,5 +1,7 @@
 'use strict'
 
+Object.prototype.extension = 'this should not mess up anything'
+
 var fs   = require('fs'),
     http = require('http'),
     test = require('tap'),
