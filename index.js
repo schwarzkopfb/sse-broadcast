@@ -95,6 +95,7 @@ SSEBroadcaster.prototype.subscribe = function subscribe(room, req, res) {
     // unsubscribe automatically when the response has been finished
     onFinished(res, this.unsubscribe.bind(this, room, res))
 
+    this.emit('subscribe', room, res)
     return this
 }
 
@@ -112,8 +113,10 @@ SSEBroadcaster.prototype.unsubscribe = function unsubscribe(room, res) {
         var i = list.indexOf(res)
 
         // remove if it's in the list
-        if (~i)
+        if (~i) {
             list.splice(i, 1)
+            this.emit('unsubscribe', room, res)
+        }
 
         // remove room if empty
         if (!list.length)
@@ -152,27 +155,35 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
 
     if (typeof eventOrOptions === 'object') {
         assert(!data, 'only one can be provided from `options` and `data`. Use `options.data` instead.')
-
-        this._composeMessage(
-            eventOrOptions.id,
-            eventOrOptions.event,
-            eventOrOptions.retry,
-            eventOrOptions.data,
-            oncomposed
-        )
+        onprepared(eventOrOptions)
     }
     else if (typeof eventOrOptions === 'string')
-        this._composeMessage(null, eventOrOptions, null, data, oncomposed)
+        try {
+            onprepared(prepareMessage(eventOrOptions, this.options.retry, data))
+        }
+        catch (ex) {
+            this.emit('error', ex)
+            return process.nextTick(callback, ex)
+        }
     else
         assert.fail(
             typeof eventOrOptions, 'string or object',
             'second argument must specify the event name or options', '==='
         )
 
-    function oncomposed(err, message) {
-        if (err)
-            return callback(err)
+    function onprepared(message) {
+        try {
+            oncomposed(composeMessage(message))
+        }
+        catch (ex) {
+            self.emit('error', ex)
+            return process.nextTick(callback, ex)
+        }
 
+        self.emit('publish', room, message)
+    }
+
+    function oncomposed(message) {
         var list = self.rooms[ room ]
 
         if (list) {
@@ -202,48 +213,84 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
             })
         }
     }
-
     return this
 }
 
-SSEBroadcaster.prototype._composeMessage = function _composeMessage(id, event, retry, data, callback) {
-    var self    = this,
-        message = ''
+/**
+ * Create a JSON-serializable object from the given message properties.
+ *
+ * @param {string|number} [id] Event identifier.
+ * @param {string} event Name of the event.
+ * @param {number} retry Retry interval in milliseconds.
+ * @param {*} data Event payload.
+ * @param {function} callback
+ */
+function prepareMessage(event, retry, data) {
+    var message = {}
 
-    if (id)
-        message += 'id: ' + id + '\n'
+    // note:
+    // event name is always required,
+    // when this method is used
+    message.event = event
 
-    if (event)
-        message += 'event: ' + event + '\n'
-
-    if (!retry)
-        retry = this.options.retry
     if (retry)
-        message += 'retry: ' + retry + '\n'
+        message.retry = retry
 
-    if (data) {
-        // SSE supports string transfer only,
-        // so try to serialize other types
-        if (typeof data !== 'string') {
-            if (data instanceof Buffer)
-                data = data.toString('utf8')
-            else try {
-                // note: it throws if `data` contains a circular reference
-                data = JSON.stringify(data)
-            }
-            catch (ex) {
-                self.emit('error', ex)
-                return callback(ex)
-            }
-        }
+    if (data)
+        message.data = stringifyData(data)
 
-        message += 'data: ' + data + '\n'
+    return message
+}
+
+/**
+ * Create the string representation of a message.
+ *
+ * @param {object} data An object containing message properties.
+ */
+function composeMessage(msg) {
+    var message = ''
+
+    if (msg.id)
+        message += 'id: ' + msg.id + '\n'
+
+    if (msg.event)
+        message += 'event: ' + msg.event + '\n'
+
+    if (msg.retry)
+        message += 'retry: ' + msg.retry + '\n'
+
+    if (msg.data) {
+        // note:
+        // subscribers of `publish` event will
+        // get this reference of `msg`, and they're
+        // expecting `msg.data` to be string, so we
+        // need to write back the serialized value
+        msg.data = stringifyData(msg.data)
+        message += 'data: ' + msg.data + '\n'
     }
 
     if (message)
         message += '\n'
 
-    callback(null, message)
+    return message
+}
+
+/**
+ * SSE supports string transfer only,
+ * so try to serialize other types
+ *
+ * @param {*} data Payload to serialize.
+ */
+function stringifyData(data) {
+    if (typeof data !== 'string') {
+        if (data instanceof Buffer)
+            data = data.toString('utf8')
+        else
+            // note: it throws if `data` contains a circular reference
+            data = JSON.stringify(data)
+    }
+
+    return data
 }
 
 /* prototype extension helpers */

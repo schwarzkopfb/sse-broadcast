@@ -33,3 +33,6 @@ event: test
 retry: 1
 data: test
 
+event: test
+retry: 1
+

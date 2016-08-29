@@ -245,6 +245,13 @@ test.test('`publish()` signatures', function (test) {
         },
         'an error event should be emitted'
     )
+    server.once('error', onerror)
+    test.doesNotThrow(
+        function () {
+            server.publish('test', { data: circular })
+        },
+        'an error event should be emitted'
+    )
     test.doesNotThrow(
         function () {
             // note: must add an error handler to prevent EventEmitter to throw,
@@ -255,7 +262,8 @@ test.test('`publish()` signatures', function (test) {
         'callback should be fired with an error'
     )
 
-    test.end()
+    // note: `publish()` always fires the callback asynchronously
+    process.nextTick(test.end.bind(test))
 })
 
 test.test('chaining', function (test) {

@@ -5,9 +5,10 @@ var fs   = require('fs'),
     test = require('tap'),
     sse  = require('../'),
     exp  = fs.readFileSync(__dirname + '/messages.txt').toString(),
-    app  = http.createServer(listener)
+    app  = http.createServer(listener),
+    b    = new sse.Broadcaster
 
-sse.proto(new sse.Broadcaster)
+sse.proto(b)
 
 function listener(req, res) {
     res.publish('test', 'test') // send to absent room
@@ -23,6 +24,10 @@ function listener(req, res) {
        .publish('test', { id: 1, event: 'test', data: new Buffer('test') })
        .publish('test', { id: 1, event: 'test', data: { test: 'test' } })
        .publish('test', { id: 1, event: 'test', data: 'test', retry: 1 })
+
+    // test default 'retry' option
+    b.options.retry = 1
+    res.publish('test', 'test')
        .end()
 }
 
