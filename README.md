@@ -80,23 +80,40 @@ for the [compression](https://github.com/expressjs/compression#options) module.
 
 ## Using multiple nodes
 
+*Beware!* The adapter described below is a work in progress!
+
 SSE is a [long-polling](https://en.wikipedia.org/wiki/Push_technology#Long_polling) solution
 which means that if you want to broadcast events to every client subscribed to a given channel
 you’ll need some way of passing messages between processes or computers.
 
-You can implement your own mechanism to do this or simply use `sse-broadcast-redis` to distribute
-events on top of [Redis](http://redis.io/):
+You can implement your own mechanism to do this or simply use [sse-broadcast-redis](https://github.com/schwarzkopfb/sse-broadcast-redis)
+to distribute events on top of [Redis](http://redis.io/):
 
 ```js
-const app = require('express')(),
-      sse = require('sse-broadcast')()
+const os      = require('os'),
+      cluster = require('cluster')
 
-require('sse-broadcast-redis')(sse, { host: 'localhost', port: 6379 })
+if (cluster.isMaster)
+    for (var i = os.cpus().length; i--;)
+        cluster.fork()
+else {
+    const app = require('express')(),
+          sse = require('sse-broadcast')()
 
-// ...
+    require('sse-broadcast-redis')(sse, { host: 'localhost', port: 6379 })
+
+    app.get('/events', function (req, res) {
+        sse.subscribe('channel', res)
+    })
+
+    app.post('/event', function (req, res) {
+        sse.publish('channel', 'event', 'data')
+        res.send()
+    })
+
+    app.listen(3333)
+}
 ```
-
-Options are passed directly to the [redis](http://redis.js.org/) module.
 
 ## Installation
 
