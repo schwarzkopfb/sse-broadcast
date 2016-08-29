@@ -78,6 +78,26 @@ app
 The `compression` option can be set to `true` or an object containing settings
 for the [compression](https://github.com/expressjs/compression#options) module.
 
+## Using multiple nodes
+
+SSE is a [long-polling](https://en.wikipedia.org/wiki/Push_technology#Long_polling) solution
+which means that if you want to broadcast events to every client subscribed to a given channel
+you’ll need some way of passing messages between processes or computers.
+
+You can implement your own mechanism to do this or simply use `sse-broadcast-redis` to distribute
+events on top of [Redis](http://redis.io/):
+
+```js
+const app = require('express')(),
+      sse = require('sse-broadcast')()
+
+require('sse-broadcast-redis')(sse, { host: 'localhost', port: 6379 })
+
+// ...
+```
+
+Options are passed directly to the [redis](http://redis.js.org/) module.
+
 ## Installation
 
 With npm:
