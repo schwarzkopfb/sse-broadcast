@@ -180,7 +180,8 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
             return process.nextTick(callback, ex)
         }
 
-        self.emit('publish', room, message)
+        if (eventOrOptions.emit !== false)
+            self.emit('publish', room, message)
     }
 
     function oncomposed(message) {
@@ -229,7 +230,7 @@ function prepareMessage(event, retry, data) {
     var message = {}
 
     // note:
-    // event name is always required,
+    // event name always present,
     // when this method is used
     message.event = event
 

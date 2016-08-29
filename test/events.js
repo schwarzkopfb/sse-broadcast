@@ -29,6 +29,10 @@ function onpublish3(room, message) {
     )
 }
 
+function onpublish4(room, message) {
+    test.fail('should not emit when `options.emit` is `false`')
+}
+
 sse.on('subscribe', function (room, res) {
     test.equal(room, 'test', '`room` should be the channel name')
     test.type(res, ctor, '`res` should be a response')
@@ -47,6 +51,8 @@ function listener(req, res) {
     sse.publish('test', 'test', new Buffer('test'))
     sse.once('publish', onpublish3)
     sse.publish('test', 'test', { test: 'test' })
+    sse.once('publish', onpublish4)
+    sse.publish('test', { event: 'test', emit: false })
 
     // note: it'll automatically unsubscribe when response ends
     res.end()
