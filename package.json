@@ -1,6 +1,6 @@
 {
   "name": "sse-broadcast",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Server-Sent Events through a Publish/Subscribe API for Node.js",
   "main": "index.js",
   "files": [ "index.js" ],
