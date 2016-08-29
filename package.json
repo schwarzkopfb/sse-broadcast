@@ -3,7 +3,9 @@
   "version": "0.0.3",
   "description": "Server-Sent Events through a Publish/Subscribe API for Node.js",
   "main": "index.js",
-  "files": [ "index.js" ],
+  "files": [
+    "index.js"
+  ],
   "scripts": {
     "test": "tap test/*.js",
     "coverage": "npm test -- --cov --coverage-report=lcov"
@@ -40,6 +42,7 @@
     "express": "^4.14.0",
     "koa": "^1.2.1",
     "koa-router": "^5.4.0",
-    "tap": "^7.0.0"
+    "tap": "^7.0.0",
+    "process.nexttick": "~1.0.1"
   }
 }
