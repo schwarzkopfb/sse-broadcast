@@ -11,7 +11,7 @@ Server-Sent Events through a Publish/Subscribe API for Node.js.
 
 ## Usage
 
-### With [Express](http://expressjs.com/)
+With [Express](http://expressjs.com/):
 
 ```js
 const app = require('express')(),
@@ -31,9 +31,52 @@ app.listen(3333)
 
 ![demo](/assets/demo.gif)
 
-For examples of usage with [Koa](http://koajs.com/) or
+If you're interested in usage with [Koa](http://koajs.com/) or
 a vanilla [Node.js](https://nodejs.org/) server,
 see the [examples](/examples) folder.
+
+For more convenience, there's a helper to extend `http.ServerResponse.prototype`:
+
+```js
+const app = require('express')(),
+      sse = require('sse-broadcast')
+
+sse.proto(sse())
+
+app
+    .get('/events', function (req, res) {
+        res.subscribe('channel')
+    })
+    .post('/event', function (req, res) {
+        res.publish('channel', 'event', 'data')
+           .end()
+    })
+    .listen(3333)
+```
+
+### Compression
+
+This package supports `response` compression.
+If you want to compress outgoing event streams then you
+have to provide the `request` object for subscriptions.
+
+```js
+const app = require('express')(),
+      sse = require('sse-broadcast')({ compression: true }) // !!!
+
+app
+    .get('/events', function (req, res) {
+        sse.subscribe('channel', req, res) // !!!
+    })
+    .post('/event', function (req, res) {
+        sse.publish('channel', 'event', 'data')
+        res.end()
+    })
+    .listen(3333)
+```
+
+The `compression` option can be set to `true` or an object containing settings
+for the [compression](https://github.com/expressjs/compression#options) module.
 
 ## Installation
 
