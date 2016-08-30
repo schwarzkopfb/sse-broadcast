@@ -31,7 +31,7 @@ app.listen(3333)
 
 ![demo](/assets/demo.gif)
 
-If you're interested in usage with [Koa](http://koajs.com/) or
+If you're interested about the usage with [Koa](http://koajs.com/) or
 a vanilla [Node.js](https://nodejs.org/) server,
 see the [examples](/examples) folder.
 
@@ -80,10 +80,8 @@ for the [compression](https://github.com/expressjs/compression#options) module.
 
 ## Using multiple nodes
 
-*Beware!* The adapter described below is a work in progress!
-
-SSE is a [long-polling](https://en.wikipedia.org/wiki/Push_technology#Long_polling) solution
-which means that if you want to broadcast events to every client subscribed to a given channel
+SSE is a [long-polling](https://en.wikipedia.org/wiki/Push_technology#Long_polling) solution,
+consequently if you want to broadcast events to every client subscribed to a given channel
 you’ll need some way of passing messages between processes or computers.
 
 You can implement your own mechanism to do this or simply use [sse-broadcast-redis](https://github.com/schwarzkopfb/sse-broadcast-redis)
@@ -114,6 +112,8 @@ else {
     app.listen(3333)
 }
 ```
+
+**Note:** options are passed to [redis](https://github.com/NodeRedis/node_redis) directly.
 
 ## Installation
 
