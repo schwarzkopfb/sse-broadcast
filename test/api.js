@@ -10,7 +10,7 @@ var http     = require('http'),
     test     = require('tap'),
     sse      = new require('../')
 
-test.plan(21)
+test.plan(26)
 
 test.type(sse, 'function', 'main export should be a function')
 test.type(sse.Broadcaster, 'function', 'constructor should be exposed')
@@ -32,13 +32,18 @@ test.doesNotThrow(
 
 test.ok(server instanceof sse, '`new` keyword should not be necessary')
 test.ok(server instanceof EE, 'server should be an EventEmitter instance')
-test.same(server.rooms, {}, 'room lookup object should be exposed')
+test.same(server._channels, {}, 'channel lookup object should be empty')
+test.same(server.channels, {}, 'channel name list should be returned')
 test.type(server.subscribe, 'function', 'instance should have a `subscribe()` method')
 test.equal(server.subscribe.length, 3, '`subscribe()` method should accept two arguemnts')
 test.type(server.unsubscribe, 'function', 'instance should have a `unsubscribe()` method')
 test.equal(server.unsubscribe.length, 2, '`unsubscribe()` method should accept two arguemnts')
 test.type(server.publish, 'function', 'instance should have a `publish()` method')
 test.equal(server.publish.length, 4, '`publish()` method should accept four arguemnts')
+test.type(server.subscribers, 'function', 'instance should have a `subscribers()` method')
+test.equal(server.subscribers.length, 1, '`subscribers()` method should accept four arguemnts')
+test.type(server.subscriberCount, 'function', 'instance should have a `subscriberCount()` method')
+test.equal(server.subscriberCount.length, 1, '`subscriberCount()` method should accept four arguemnts')
 
 function noop() {}
 function FakeResponse() {
@@ -58,39 +63,43 @@ var res  = new FakeResponse,
 
 test.test('subscriptions', function (test) {
     server.subscribe('test', res)
-    test.same(server.rooms, { test: [ res ] }, 'subscription should be stored')
+    test.same(server._channels, { test: [ res ] }, 'subscription should be stored')
     server.subscribe('test', res)
-    test.same(server.rooms, { test: [ res ] }, 're-subscription should be ignored')
+    test.same(server._channels, { test: [ res ] }, 're-subscription should be ignored')
     server.subscribe('test2', res)
     test.same(
-        server.rooms, { test: [ res ], test2: [ res ] },
+        server._channels, { test: [ res ], test2: [ res ] },
         'subscription in a different room should be stored'
     )
     server.subscribe('test', res2)
     test.same(
-        server.rooms, { test: [ res, res2 ], test2: [ res ] },
+        server._channels, { test: [ res, res2 ], test2: [ res ] },
         'subscription with a different response should be stored'
     )
     server.unsubscribe('test', {})
     test.same(
-        server.rooms, { test: [ res, res2 ], test2: [ res ] },
+        server._channels, { test: [ res, res2 ], test2: [ res ] },
         'unsubscribe with an absent response should not have effect'
     )
     server.unsubscribe('test3', res)
     test.same(
-        server.rooms, { test: [ res, res2 ], test2: [ res ] },
+        server._channels, { test: [ res, res2 ], test2: [ res ] },
         'unsubscribe from an absent room should not have effect'
     )
     server.unsubscribe('test', res)
     test.same(
-        server.rooms, { test: [ res2 ], test2: [ res ] },
+        server._channels, { test: [ res2 ], test2: [ res ] },
         'unsubscribe should remove stored response'
     )
     server.unsubscribe('test2', res)
     test.same(
-        server.rooms, { test: [ res2 ] },
+        server._channels, { test: [ res2 ] },
         'empty room should be removed'
     )
+    test.same(server.subscribers('test'), [ res2 ], 'a subscriber array should be returned')
+    test.same(server.subscribers('absent'), [], 'an empty array should be returned')
+    test.equal(server.subscriberCount('test'), 1, 'subscriber count should be returned')
+    test.equal(server.subscriberCount('absent'), 0, 'zero should be returned')
 
     test.end()
 })
@@ -139,10 +148,10 @@ test.test('convenience methods', function (test) {
 
     res.unsubscribe('test')
     res2.unsubscribe('test')
-    test.same(server.rooms, {}, 'unsubscribe via proto methods should work')
+    test.same(server._channels, {}, 'unsubscribe via proto methods should work')
     res2.subscribe('test')
     test.same(
-        server.rooms, { test: [ res2 ] },
+        server._channels, { test: [ res2 ] },
         'subscribe via proto methods should work'
     )
     test.throws(

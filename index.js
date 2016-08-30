@@ -15,9 +15,9 @@ function SSEBroadcaster(options) {
 
     EventEmitter.call(this)
 
-    var opts     = options || {}
-    this.rooms   = {}
+    var opts = options || {}
     this.options = opts
+    this._channels = {}
 
     if (opts.compression === true)
         this._compress = compression()
@@ -54,6 +54,13 @@ function nocompress(req, res, next) {
     next()
 }
 
+Object.defineProperty(SSEBroadcaster.prototype, 'channels', {
+    enumerable: true,
+    get: function () {
+        return Object.keys(this._channels)
+    }
+})
+
 /**
  * Subscribe for messages in a given room.
  *
@@ -71,11 +78,11 @@ SSEBroadcaster.prototype.subscribe = function subscribe(room, req, res) {
         res.req = req
     }
 
-    var list = this.rooms[ room ]
+    var list = this._channels[ room ]
 
     // room not exists, create it!
     if (!list)
-        list = this.rooms[ room ] = []
+        list = this._channels[ room ] = []
 
     // already subscribed
     if (~list.indexOf(res))
@@ -106,7 +113,7 @@ SSEBroadcaster.prototype.subscribe = function subscribe(room, req, res) {
  * @param {http.ServerResponse} res Subscriber to to remove.
  */
 SSEBroadcaster.prototype.unsubscribe = function unsubscribe(room, res) {
-    var list = this.rooms[ room ]
+    var list = this._channels[ room ]
 
     if (list) {
         // find the response object
@@ -120,10 +127,30 @@ SSEBroadcaster.prototype.unsubscribe = function unsubscribe(room, res) {
 
         // remove room if empty
         if (!list.length)
-            delete this.rooms[ room ]
+            delete this._channels[ room ]
     }
 
     return this
+}
+
+/**
+ * Returns the number of subscribers listening to the given channel.
+ *
+ * @param {string} room The name of the channel being subscribed for.
+ * @returns {Array}
+ */
+SSEBroadcaster.prototype.subscriberCount = function subscribers(room) {
+    return (this._channels[ room ] || []).length
+}
+
+/**
+ * Returns a copy of the array of subscribers for the given channel.
+ *
+ * @param {string} room The name of the channel being subscribed for.
+ * @returns {Array}
+ */
+SSEBroadcaster.prototype.subscribers = function subscribers(room) {
+    return copy(this._channels[ room ] || [])
 }
 
 /**
@@ -185,7 +212,7 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
     }
 
     function oncomposed(message) {
-        var list = self.rooms[ room ]
+        var list = self._channels[ room ]
 
         if (list) {
             var pending = list.length
@@ -292,6 +319,19 @@ function stringifyData(data) {
     }
 
     return data
+}
+
+/**
+ * Clone an array or object.
+ */
+function copy(source) {
+    var target = {}
+
+    Object.keys(source).forEach(function (k) {
+        target[ k ] = source[ k ]
+    })
+
+    return target
 }
 
 /* prototype extension helpers */

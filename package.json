@@ -1,6 +1,6 @@
 {
   "name": "sse-broadcast",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "Server-Sent Events through a Publish/Subscribe API for Node.js",
   "main": "index.js",
   "files": [
@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "test": "tap test/*.js",
-    "coverage": "npm test -- --cov --coverage-report=lcov"
+    "cover": "npm test -- --cov --coverage-report=lcov"
   },
   "repository": {
     "type": "git",
