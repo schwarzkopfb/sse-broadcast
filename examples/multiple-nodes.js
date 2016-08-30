@@ -9,7 +9,7 @@ if (cluster.isMaster)
 else {
     const app     = require('express')(),
           sse     = require('../')(),
-          adapter = require('../mn')(sse, { host: 'localhost', port: 6379 })
+          adapter = require('sse-broadcast-redis')(sse, { host: 'localhost', port: 6379 })
 
     app.get('/events', function (req, res) {
         sse.subscribe('channel', res)
