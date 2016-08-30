@@ -124,7 +124,7 @@ API docs are coming soon! Check back tomorrow or the day after!
 
 ## Compatibility
 
-`hand-over` is compatible with Node `0.8` and above but in versions lower than `1` you'll need to use a [`process.nextTick()` polyfill](https://npm.im/process.nexttick).
+`sse-broadcast` is compatible with Node `0.8` and above but in versions lower than `1` you'll need to use a [`process.nextTick()` polyfill](https://npm.im/process.nexttick).
 
 ## Installation
 
