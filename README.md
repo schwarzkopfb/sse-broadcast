@@ -7,7 +7,9 @@
 
 # sse-broadcast
 
-Server-Sent Events through a Publish/Subscribe API for Node.js.
+[Server-Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) through a Publish/Subscribe API for [Node.js](https://nodejs.org/).
+This package is intended to simplify the use of SSE by providing a convenient way to organize ongoing streams into classes (or _channels_).
+You can bind an open response stream to one or more channels - specified by a string identifier - and in other parts of the codebase you can address messages (or _events_) by that channel. Let's take a look at the following example!
 
 ## Usage
 
@@ -32,7 +34,7 @@ app.listen(3333)
 ![demo](/assets/demo.gif)
 
 If you're interested about the usage with [Koa](http://koajs.com/) or
-a vanilla [Node.js](https://nodejs.org/) server,
+a vanilla Node.js server,
 see the [examples](/examples) folder.
 
 For more convenience, there's a helper to extend `http.ServerResponse.prototype`:
@@ -114,6 +116,15 @@ else {
 ```
 
 **Note:** options are passed to [redis](https://github.com/NodeRedis/node_redis) directly.
+
+## API
+
+API docs are coming soon! Check back tomorrow or the day after!
+(And in the meantime [examples](/examples) may be useful.)
+
+## Compatibility
+
+`hand-over` is compatible with Node `0.8` and above but in versions lower than `1` you'll need to use a [`process.nextTick()` polyfill](https://npm.im/process.nexttick).
 
 ## Installation
 
