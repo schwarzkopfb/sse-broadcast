@@ -55,8 +55,7 @@ Channel name must be a string. `res` is a `http.ServerResponse` instance.
 
 ### broadcaster.publish(channel, eventNameOrOptions, [data], [callback])
 
-Publish a message in the given channel. Channel and event names must be strings.
-
+Publish a message in the given channel. Channel and event names must be strings.<br/>
 Examples of valid signatures:
 ```js
 broadcaster.publish('channel', 'event')

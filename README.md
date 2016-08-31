@@ -119,8 +119,7 @@ else {
 
 ## API
 
-API docs are coming soon! Check back tomorrow or the day after!
-(And in the meantime [examples](/examples) may be useful.)
+The overall API documentation is available [here](/API.md)
 
 ## Compatibility
 
