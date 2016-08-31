@@ -119,7 +119,7 @@ else {
 
 ## API
 
-The overall API documentation is available [here](/API.md)
+The overall API documentation is available [here](/API.md).
 
 ## Compatibility
 

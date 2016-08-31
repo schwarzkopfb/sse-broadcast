@@ -1,5 +1,7 @@
 # sse-broadcast API Documentation
 
+## Static methods
+
 ```js
 const Broadcaster = require('sse-broadcast')
 ```
@@ -36,6 +38,8 @@ Circular reference to the broadcaster constructor for those who find `require('s
 ### Broadcaster.version
 
 The version string from package manifest.
+
+## Instance methods
 
 ```js
 const broadcaster = new Broadcaster
@@ -104,3 +108,47 @@ Returns a copy of the array of subscribers of the given channel.
 ### broadcaster.channels
 
 Returns an array of currently existing channel names of broadcaster.
+
+## Events
+
+### Event: 'subscribe'
+
+```js
+function (channel, res) { }
+```
+
+Emitted when a new subscription has been created.
+
+### Event: 'unsubscribe'
+
+```js
+function (channel, res) { }
+```
+
+Emitted when a subscription has been removed.
+
+### Event: 'publish'
+
+```js
+function (channel, message) { }
+```
+
+Emitted when a message has been published in a channel. `message` is an object containing the fields of the message.
+
+### Event: 'warning'
+
+```js
+function (description, res) { }
+```
+
+Emitted when a the broadcaster is unable to set SSE http headers on the response.
+(Because headers are already sent.)
+
+
+### Event: 'error'
+
+```js
+function (err) { }
+```
+
+Emitted when a broadcaster is unable to serialize a message.
