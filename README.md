@@ -84,7 +84,7 @@ for the [compression](https://github.com/expressjs/compression#options) module.
 
 SSE is a [long-polling](https://en.wikipedia.org/wiki/Push_technology#Long_polling) solution,
 consequently if you want to broadcast events to every client subscribed to a given channel
-you’ll need some way of passing messages between processes or computers.
+then you’ll need some way of passing messages between processes or computers.
 
 You can implement your own mechanism to do this or simply use [sse-broadcast-redis](https://github.com/schwarzkopfb/sse-broadcast-redis)
 to distribute events on top of [Redis](http://redis.io/):

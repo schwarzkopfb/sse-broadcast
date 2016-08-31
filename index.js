@@ -144,7 +144,7 @@ SSEBroadcaster.prototype.subscriberCount = function subscribers(room) {
 }
 
 /**
- * Returns a copy of the array of subscribers for the given channel.
+ * Returns a copy of the array of subscribers of the given channel.
  *
  * @param {string} room The name of the channel being subscribed for.
  * @returns {Array}
