@@ -53,26 +53,38 @@ Channel name must be a string.
 Remove a response stream from the given channel.
 Channel name must be a string. `res` is a `http.ServerResponse` instance.
 
-### broadcaster.publish(channel, eventName, data, [callback])
-### broadcaster.publish(channel, options, [callback])
+### broadcaster.publish(channel, eventNameOrOptions, [data], [callback])
 
-Publish a message in the given channel. Channel and event names must be a strings.
+Publish a message in the given channel. Channel and event names must be strings.
 
-Data is the value of the message's `data` field.
-Buffers are converted to strings with `utf8` encoding.
-If data is not a string then `JSON.stringify()` is used to serialize it.
+#### eventName
+
+The message's `event` field.
+
+#### options
 
 Options is an object specifying the message to send.
 
-#### options.id, options.event, options.retry, options.data
+##### options.id, options.event, options.retry, options.data
 
 These can be used to set values of the corresponding SSE message fields described
 [here](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events).
 
-#### options.emit
+##### options.emit
 
 Set it to `false` to prevent the broadcaster to emit `publish` event.
 Used by adapters to obviate re-publishing the same message.
+
+#### data
+
+If supplied then data is the value of the message's `data` field.
+Buffers are converted to strings with `utf8` encoding.
+If data is not a string then `JSON.stringify()` is used to serialize it.
+Note that you can set the message's `data` field by providing an options object.
+
+#### callback
+
+An optional function to be called when the message is flushed.
 
 ### broadcaster.subscriberCount(channel)
 
