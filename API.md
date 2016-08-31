@@ -57,9 +57,17 @@ Channel name must be a string. `res` is a `http.ServerResponse` instance.
 
 Publish a message in the given channel. Channel and event names must be strings.
 
+Examples of valid signatures:
+```js
+broadcaster.publish('channel', 'event')
+broadcaster.publish('channel', 'event', 'data')
+broadcaster.publish('channel', { event: 'event' })
+broadcaster.publish('channel', { event: 'event', data: 'data' })
+```
+
 #### eventName
 
-The message's `event` field.
+Value of the message's `event` field.
 
 #### options
 
@@ -80,7 +88,7 @@ Used by adapters to obviate re-publishing the same message.
 If supplied then data is the value of the message's `data` field.
 Buffers are converted to strings with `utf8` encoding.
 If data is not a string then `JSON.stringify()` is used to serialize it.
-Note that you can set the message's `data` field by providing an options object.
+Note that you can set the message's `data` field by providing an options object instead.
 
 #### callback
 
@@ -96,4 +104,4 @@ Returns a copy of the array of subscribers of the given channel.
 
 ### broadcaster.channels
 
-Returns an array of currently existing channel names of the broadcaster.
+Returns an array of currently existing channel names of broadcaster.
