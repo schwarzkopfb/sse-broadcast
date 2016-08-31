@@ -44,7 +44,7 @@ Object.defineProperties(exports, {
     version: {
         enumerable: true,
         get: function () {
-            return require(__dirname + '/package.json').version
+            return require('./package.json').version
         }
     }
 })

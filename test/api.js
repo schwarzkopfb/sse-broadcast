@@ -33,7 +33,7 @@ test.doesNotThrow(
 test.ok(server instanceof sse, '`new` keyword should not be necessary')
 test.ok(server instanceof EE, 'server should be an EventEmitter instance')
 test.same(server._channels, {}, 'channel lookup object should be empty')
-test.same(server.channels, {}, 'channel name list should be returned')
+test.same(server.channels, [], 'channel name list should be returned')
 test.type(server.subscribe, 'function', 'instance should have a `subscribe()` method')
 test.equal(server.subscribe.length, 3, '`subscribe()` method should accept two arguemnts')
 test.type(server.unsubscribe, 'function', 'instance should have a `unsubscribe()` method')
