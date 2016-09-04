@@ -11,7 +11,7 @@ var http         = require('http'),
 
 function SSEBroadcaster(options) {
     if (!(this instanceof SSEBroadcaster))
-        return new SSEBroadcaster
+        return new SSEBroadcaster(options)
 
     EventEmitter.call(this)
 
