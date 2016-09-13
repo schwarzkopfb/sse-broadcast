@@ -52,15 +52,12 @@ Object.defineProperties(exports, {
     }
 })
 
-function noop() {}
-function nocompress(req, res, next) {
-    next()
-}
-
-Object.defineProperty(SSEBroadcaster.prototype, 'channels', {
-    enumerable: true,
-    get: function () {
-        return Object.keys(this._channels)
+Object.defineProperties(SSEBroadcaster.prototype, {
+    channels: {
+        enumerable: true,
+        get: function () {
+            return Object.keys(this._channels)
+        }
     }
 })
 
@@ -249,6 +246,61 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
 }
 
 /**
+ * Middleware factory function.
+ *
+ * @param {string|object} channelOrOptions A channel name or an options object that specifies the middleware's behaviour.
+ * @param {string} channelOrOptions.param Param name to use as channel name from `req.params`.
+ * @param {string} channelOrOptions.query Qeury field name to use as channel name from `req.query`.
+ * @param {string} channelOrOptions.body Body field name to use as channel name from `req.body`.
+ */
+SSEBroadcaster.prototype.middleware = function middleware(channelOrOptions) {
+    assert(channelOrOptions, 'channel name or options object is required to create a middleware')
+
+    switch (typeof channelOrOptions) {
+        case 'string':
+            var opts = { channel: channelOrOptions }
+            break
+
+        case 'object':
+            opts = channelOrOptions
+            assert.equal(
+                Object.keys(opts).length, 1,
+                'only one is allowed of the following options: `channel`, `param`, `query` or `body`'
+            )
+            break
+
+        default:
+            throw new TypeError('first argument must be a channel name or options object')
+    }
+
+    var self = this
+
+    if (opts.channel)
+        return function (req, res) {
+            self.subscribe(opts.channel, res)
+        }
+    else if (opts.param)
+        return function (req, res) {
+            self.subscribe(req.params[ opts.param ], res)
+        }
+    else if (opts.query)
+        return function (req, res) {
+            self.subscribe(req.query[ opts.query ], res)
+        }
+    else if (opts.body)
+        return function (req, res) {
+            self.subscribe(req.body[ opts.body ], res)
+        }
+    else
+        throw new TypeError('channel name is indeterminable')
+}
+
+function noop() {}
+function nocompress(req, res, next) {
+    next()
+}
+
+/**
  * Set the given response header only if it's not already set.
  *
  * @param {http.ServerResponse} res
@@ -338,10 +390,10 @@ function stringifyData(data) {
 }
 
 /**
- * Clone an array or object.
+ * Clone an array.
  */
 function copy(source) {
-    var target = {}
+    var target = []
 
     Object.keys(source).forEach(function (k) {
         target[ k ] = source[ k ]

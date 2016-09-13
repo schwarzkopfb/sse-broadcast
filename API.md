@@ -113,6 +113,21 @@ Returns a copy of the array of subscribers of the given channel.
 
 Returns an array of currently existing channel names of broadcaster.
 
+### broadcaster.middleware(channelOrOptions)
+
+Returns a classic-style `(req, res)` middleware function which is suitable for Connect/Express and other popular frameworks. `channelOrOptions` can be a static channel name or an object specifying the name source.
+
+#### options.param, options.query, options.body
+
+Subscribe a client to the channel specified by `req.params`, `req.query` or `req.body`, respectively.
+```js
+app.get('/feed', sse.middleware('feed'))
+app.get('/events', sse.middleware({ query: 'type' })) // /events?type=feed
+app.post('/events', sse.middleware({ body: 'type' })) // /events { type: 'feed' }
+app.get('/events/:type', sse.middleware({ param: 'type' })) // /events/feed
+```
+A complete example can be found [here](/examples/middleware.js).
+
 ## Events
 
 ### Event: 'subscribe'

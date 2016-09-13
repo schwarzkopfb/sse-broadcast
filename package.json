@@ -1,6 +1,6 @@
 {
   "name": "sse-broadcast",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Server-Sent Events through a Publish/Subscribe API for Node.js",
   "main": "index.js",
   "files": [
@@ -39,10 +39,11 @@
     "on-finished": "^2.3.0"
   },
   "devDependencies": {
+    "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "koa": "^1.2.1",
     "koa-router": "^5.4.0",
-    "tap": "^7.0.0",
-    "process.nexttick": "~1.0.1"
+    "process.nexttick": "~1.0.1",
+    "tap": "^7.0.0"
   }
 }

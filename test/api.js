@@ -8,9 +8,9 @@ var http     = require('http'),
     AE       = require('assert').AssertionError,
     inherits = require('util').inherits,
     test     = require('tap'),
-    sse      = new require('../')
+    sse      = require('../')
 
-test.plan(26)
+test.plan(29)
 
 test.type(sse, 'function', 'main export should be a function')
 test.type(sse.Broadcaster, 'function', 'constructor should be exposed')
@@ -44,6 +44,8 @@ test.type(server.subscribers, 'function', 'instance should have a `subscribers()
 test.equal(server.subscribers.length, 1, '`subscribers()` method should accept four arguemnts')
 test.type(server.subscriberCount, 'function', 'instance should have a `subscriberCount()` method')
 test.equal(server.subscriberCount.length, 1, '`subscriberCount()` method should accept four arguemnts')
+test.type(server.middleware, 'function', 'middleware factory method should be exposed')
+test.equal(server.middleware.length, 1, 'middleware factory method should accept one argument')
 
 function noop() {}
 function FakeResponse() {
@@ -96,6 +98,7 @@ test.test('subscriptions', function (test) {
         server._channels, { test: [ res2 ] },
         'empty room should be removed'
     )
+    test.type(server.subscribers('test'), Array, '`subscribers()` must return an array')
     test.same(server.subscribers('test'), [ res2 ], 'a subscriber array should be returned')
     test.same(server.subscribers('absent'), [], 'an empty array should be returned')
     test.equal(server.subscriberCount('test'), 1, 'subscriber count should be returned')
@@ -276,6 +279,53 @@ test.test('`publish()` signatures', function (test) {
 
     // note: `publish()` always fires the callback asynchronously
     process.nextTick(test.end.bind(test))
+})
+
+test.test('middleware factory', function (test) {
+    test.throws(
+        function () {
+            server.middleware()
+        },
+        AE,
+        'middleware factory argument should be asserted'
+    )
+    test.throws(
+        function () {
+            server.middleware(true)
+        },
+        TypeError,
+        'middleware factory argument should be asserted'
+    )
+    test.throws(
+        function () {
+            server.middleware({})
+        },
+        AE,
+        'middleware factory argument should be asserted'
+    )
+    test.throws(
+        function () {
+            server.middleware({ test: 42 })
+        },
+        TypeError,
+        'middleware factory argument should be asserted'
+    )
+    test.throws(
+        function () {
+            server.middleware({ query: 'a', body: 'b' })
+        },
+        AE,
+        'middleware factory argument should be asserted'
+    )
+    test.doesNotThrow(
+        function () {
+            server.middleware({ param: 'a' })
+        },
+        'middleware factory should accept valid arguments'
+    )
+    test.type(server.middleware({ param: 'a' }), 'function', 'middleware factory should return a function')
+
+    test.end()
 })
 
 test.test('chaining', function (test) {

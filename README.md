@@ -34,10 +34,9 @@ app.listen(3333)
 ![demo](/assets/demo.gif)
 
 If you're interested about the usage with [Koa](http://koajs.com/) or
-a vanilla Node.js server,
-see the [examples](/examples) folder.
+a vanilla Node.js server, see the [examples](/examples) folder.
 
-For more convenience, there's a helper to extend `http.ServerResponse.prototype`:
+For more convenience, there are helpers to extend `http.ServerResponse.prototype` and to easily [create middleware](/examples/middleware.js) for Connect/Express:
 
 ```js
 const app = require('express')(),
@@ -45,15 +44,11 @@ const app = require('express')(),
 
 sse.proto(sse())
 
-app
-    .get('/events', function (req, res) {
-        res.subscribe('channel')
+app.get('/events/:type', function (req, res) {
+        res.subscribe(req.params.type)
     })
-    .post('/event', function (req, res) {
-        res.publish('channel', 'event', 'data')
-           .end()
-    })
-    .listen(3333)
+// or
+app.get('/events/:type', sse.middleware({ param: 'type' }))
 ```
 
 ### Compression
