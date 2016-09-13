@@ -54,7 +54,7 @@ function listener(req, res) {
     sse.once('publish', onpublish4)
     sse.publish('test', { event: 'test', emit: false })
 
-    // note: it'll automatically unsubscribe when response ends
+    // note: sse-broadcast automatically unsubscribes when response ends
     res.end()
 }
 

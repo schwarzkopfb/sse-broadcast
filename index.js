@@ -19,6 +19,9 @@ function SSEBroadcaster(options) {
     this.options = opts
     this._channels = {}
 
+    if (!opts.encoding)
+        opts.encoding = 'utf8'
+
     if (opts.compression === true)
         this._compress = compression()
     else if (opts.compression)
@@ -94,10 +97,11 @@ SSEBroadcaster.prototype.subscribe = function subscribe(room, req, res) {
     // disable response buffering to
     // flush chunks immediately after writes
     res.socket.setNoDelay(true)
+
     // set SSE headers
-    res.setHeader('connection', 'keep-alive')
-    res.setHeader('content-type', 'text/event-stream')
-    res.setHeader('cache-control', 'no-cache')
+    setHeader(res, 'connection', 'keep-alive')
+    setHeader(res, 'content-type', 'text/event-stream; charset=' + this.options.encoding)
+    setHeader(res, 'cache-control', 'no-cache')
 
     // unsubscribe automatically when the response has been finished
     onFinished(res, this.unsubscribe.bind(this, room, res))
@@ -242,6 +246,18 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
         }
     }
     return this
+}
+
+/**
+ * Set the given response header only if it's not already set.
+ *
+ * @param {http.ServerResponse} res
+ * @param {string} field
+ * @param {string} value
+ */
+function setHeader(res, field, value) {
+    if (!res.getHeader(field))
+        res.setHeader(field, value)
 }
 
 /**
