@@ -22,6 +22,10 @@ This can be set to `true` to enable compression with default settings
 or an object containing settings for the [compression](https://github.com/expressjs/compression#options) module.
 Compression is **disabled by default**.
 
+#### options.encoding
+
+Set the charset parameter of the `Content-Type` http header. Defaults to `utf8`.
+
 ### Broadcaster.proto(broadcaster)
 
 Extend `http.ServerResponse.prototype` with a set of convenience methods:
