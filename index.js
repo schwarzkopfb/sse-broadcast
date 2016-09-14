@@ -16,7 +16,9 @@ function SSEBroadcaster(options) {
     EventEmitter.call(this)
 
     var opts = options || {}
-    this.options = opts
+
+    this.options   = opts
+    this.finished  = false
     this._channels = {}
 
     if (!opts.encoding)
@@ -78,6 +80,11 @@ SSEBroadcaster.prototype.subscribe = function subscribe(room, req, res) {
         res.req = req
     }
 
+    if (this.finished) {
+        res.end()
+        return this
+    }
+
     var list = this._channels[ room ]
 
     // room not exists, create it!
@@ -86,7 +93,7 @@ SSEBroadcaster.prototype.subscribe = function subscribe(room, req, res) {
 
     // already subscribed
     if (~list.indexOf(res))
-        return
+        return this
 
     // store the subscription
     list.push(res)
@@ -191,13 +198,11 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
         }
         catch (ex) {
             this.emit('error', ex)
-            return process.nextTick(callback, ex)
+            process.nextTick(callback, ex)
+            return this
         }
     else
-        assert.fail(
-            typeof eventOrOptions, 'string or object',
-            'second argument must specify the event name or options', '==='
-        )
+        throw new TypeError('second argument must specify the event name or options')
 
     function onprepared(message) {
         try {
@@ -205,7 +210,8 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
         }
         catch (ex) {
             self.emit('error', ex)
-            return process.nextTick(callback, ex)
+            process.nextTick(callback, ex)
+            return this
         }
 
         if (eventOrOptions.emit !== false)
@@ -243,6 +249,33 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
         }
     }
     return this
+}
+
+/**
+ * End all the open response streams of the broadcaster instance.
+ * After it's called, `finished` will be set to `true`, the
+ * `finish` event will be emitted, new subscriptions will be rejected and
+ * the `publish()` method will no longer have effect.
+ */
+SSEBroadcaster.prototype.end = function end() {
+    if (this.finished)
+        return
+
+    var self     = this,
+        channels = this._channels
+
+    Object.keys(channels).forEach(function (name) {
+        var subscribers = channels[ name ]
+        subscribers.forEach(function (res) {
+            res.end()
+        })
+    })
+
+    // let `onFinished` handlers execute
+    process.nextTick(function () {
+        self.finished = true
+        self.emit('finish')
+    })
 }
 
 /**

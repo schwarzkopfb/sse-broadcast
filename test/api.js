@@ -196,7 +196,7 @@ test.test('`publish()` signatures', function (test) {
         function () {
             server.publish('test', true)
         },
-        AE, '`publish()` should require a valid event name or options object'
+        TypeError, '`publish()` should require a valid event name or options object'
     )
     test.doesNotThrow(
         function () {

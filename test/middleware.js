@@ -46,9 +46,7 @@ app = app.listen(function (err) {
             --i || sse.publish('test', 'test', 'test')
         })
         sse.on('publish', function () {
-            sse.subscribers('test').forEach(function (res) {
-                res.end()
-            })
+            sse.end()
             app.close()
         })
 

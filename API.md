@@ -43,7 +43,7 @@ Circular reference to the broadcaster constructor for those who find `require('s
 
 The version string from package manifest.
 
-## Instance methods
+## Instance members
 
 ```js
 const broadcaster = new Broadcaster
@@ -101,6 +101,12 @@ Note that you can set the message's `data` field by providing an options object 
 
 An optional function to be called when the message is flushed.
 
+### broadcaster.end()
+
+End all the ongoing response streams of the broadcaster instance.
+After it's called, new subscriptions will be rejected and
+the `publish()` method will no longer have effect.
+
 ### broadcaster.subscriberCount(channel)
 
 Returns the number of subscribers listening to the given channel.
@@ -108,10 +114,6 @@ Returns the number of subscribers listening to the given channel.
 ### broadcaster.subscribers(channel)
 
 Returns a copy of the array of subscribers of the given channel.
-
-### broadcaster.channels
-
-Returns an array of currently existing channel names of broadcaster.
 
 ### broadcaster.middleware(channelOrOptions)
 
@@ -127,6 +129,15 @@ app.post('/events', sse.middleware({ body: 'type' })) // /events { type: 'feed' 
 app.get('/events/:type', sse.middleware({ param: 'type' })) // /events/feed
 ```
 A complete example can be found [here](/examples/middleware.js).
+
+### broadcaster.channels
+
+Returns an array of currently existing channel names of broadcaster.
+
+### broadcaster.finished
+
+Boolean value that indicates that the broadcaster is no longer accepting subscriptions.
+Starts as `false`. After `broadcaster.end()` executes, the value will be true.
 
 ## Events
 
@@ -152,7 +163,14 @@ Emitted when a subscription has been removed.
 function (channel, message) { }
 ```
 
-Emitted when a message has been published in a channel. `message` is an object containing the fields of the message.
+### Event: 'finish'
+
+```js
+function () { }
+```
+
+Emitted when all the open channels has been closed of the broadcaster instance.
+After this event, new requests will be rejected and no more events will be emitted on the broadcaster.
 
 ### Event: 'warning'
 

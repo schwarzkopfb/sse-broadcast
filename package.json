@@ -1,6 +1,6 @@
 {
   "name": "sse-broadcast",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Server-Sent Events through a Publish/Subscribe API for Node.js",
   "main": "index.js",
   "files": [
@@ -26,7 +26,11 @@
     "publish",
     "subscribe",
     "channel",
-    "room"
+    "room",
+    "middleware",
+    "connect",
+    "express",
+    "koa"
   ],
   "author": "Schwarzkopf Balázs <schwarzkopfb@icloud.com>",
   "license": "MIT",

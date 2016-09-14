@@ -6,7 +6,7 @@ var http = require('http'),
     sse  = require('../')(),
     app  = http.createServer(listener)
 
-test.plan(10)
+test.plan(13)
 
 function onpublish1(room, message) {
     test.equal(room, 'test', '`room` should be the channel name')
@@ -43,6 +43,12 @@ sse.on('unsubscribe', function (room, res) {
     test.type(res, ctor, '`res` should be a response')
 })
 
+sse.on('finish', function () {
+    test.pass('`finish` has been emitted')
+    test.equal(this.finished, true, '`finished` should be set to `true`')
+    test.same(this.channels, [], 'no more channel should be stored after `finish`')
+})
+
 function listener(req, res) {
     sse.subscribe('test', res)
     sse.once('publish', onpublish1)
@@ -54,8 +60,7 @@ function listener(req, res) {
     sse.once('publish', onpublish4)
     sse.publish('test', { event: 'test', emit: false })
 
-    // note: sse-broadcast automatically unsubscribes when response ends
-    res.end()
+    sse.end()
 }
 
 app.listen(function (err) {
