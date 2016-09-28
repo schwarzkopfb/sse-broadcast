@@ -42,7 +42,7 @@ function listener(req, res) {
 var expected = [
     {
         'cache-control': 'no-cache',
-        'content-type': 'text/event-stream; charset=utf8',
+        'content-type': 'text/event-stream; charset=UTF-8',
         connection: 'keep-alive'
     },
     {
@@ -52,7 +52,7 @@ var expected = [
     },
     {
         'cache-control': 'no-transform',
-        'content-type': 'text/event-stream; charset=utf8',
+        'content-type': 'text/event-stream; charset=UTF-8',
         connection: 'keep-alive'
     },
     {
