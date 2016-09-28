@@ -4,7 +4,9 @@ var http = require('http'),
     test = require('tap'),
     app  = require('express')(),
     body = require('body-parser').json(),
+    dest = require('server-destroy'),
     sse  = require('../')(),
+    pend = 4,
     addr
 
 test.plan(4)
@@ -20,12 +22,14 @@ function request(path, body) {
     addr.headers = { 'content-type': 'application/json' }
 
     var req = http.request(addr, function (res) {
-        var data = ''
-        res.on('data', function (chunk) {
-            data += chunk
-        })
-        res.on('end', function () {
+        res.setEncoding('utf8')
+        res.on('data', function (data) {
             test.equal(data, 'event: test\ndata: test\n\n', '`test` event should be received')
+
+            if (--pend)
+                return
+
+            app.destroy()
         })
     })
 
@@ -45,10 +49,6 @@ app = app.listen(function (err) {
         sse.on('subscribe', function () {
             --i || sse.publish('test', 'test', 'test')
         })
-        sse.on('publish', function () {
-            sse.end()
-            app.close()
-        })
 
         request('/1')
         request('/2?test=test')
@@ -56,3 +56,5 @@ app = app.listen(function (err) {
         request('/4/test')
     }
 })
+
+dest(app)

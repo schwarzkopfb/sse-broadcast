@@ -1,6 +1,6 @@
 {
   "name": "sse-broadcast",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Server-Sent Events through a Publish/Subscribe API for Node.js",
   "main": "index.js",
   "files": [
@@ -48,6 +48,7 @@
     "koa": "^1.2.1",
     "koa-router": "^5.4.0",
     "process.nexttick": "~1.0.1",
+    "server-destroy": "^1.0.1",
     "tap": "^7.0.0"
   }
 }
