@@ -22,7 +22,7 @@ function SSEBroadcaster(options) {
     this._channels = {}
 
     if (!opts.encoding)
-        opts.encoding = 'utf8'
+        opts.encoding = 'UTF-8'
 
     if (opts.compression === true)
         this._compress = compression()
