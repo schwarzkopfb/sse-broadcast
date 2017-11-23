@@ -175,7 +175,9 @@ SSEBroadcaster.prototype.subscribers = function subscribers(room) {
  */
 SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, callback) {
     var self     = this,
-        compress = this.options.compression
+        opts     = this.options,
+        retry    = opts.retry,
+        compress = opts.compression
 
     assert(arguments.length >= 2, '`publish()` requires at least two arguments')
     assert.equal(typeof room, 'string', 'first argument must specify the room name')
@@ -190,11 +192,15 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
 
     if (typeof eventOrOptions === 'object') {
         assert(!data, 'only one can be provided from `options` and `data`. Use `options.data` instead.')
+
+        if (eventOrOptions.retry === undefined && retry !== undefined)
+            eventOrOptions.retry = retry
+
         onprepared(eventOrOptions)
     }
     else if (typeof eventOrOptions === 'string')
         try {
-            onprepared(prepareMessage(eventOrOptions, this.options.retry, data))
+            onprepared(prepareMessage(eventOrOptions, retry, data))
         }
         catch (ex) {
             this.emit('error', ex)
@@ -266,6 +272,7 @@ SSEBroadcaster.prototype.end = function end() {
 
     Object.keys(channels).forEach(function (name) {
         var subscribers = channels[ name ]
+
         subscribers.forEach(function (res) {
             res.end()
         })
@@ -274,6 +281,7 @@ SSEBroadcaster.prototype.end = function end() {
     // let `onFinished` handlers execute
     process.nextTick(function () {
         self.finished = true
+        self._channels = []
         self.emit('finish')
     })
 }
@@ -374,7 +382,7 @@ function prepareMessage(event, retry, data) {
 /**
  * Create the string representation of a message.
  *
- * @param {object} data An object containing message properties.
+ * @param {object} msg An object containing message properties.
  */
 function composeMessage(msg) {
     var message = ''
