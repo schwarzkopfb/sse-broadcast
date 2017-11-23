@@ -6,7 +6,7 @@ var http = require('http'),
     sse  = require('../')(),
     app  = http.createServer(listener)
 
-test.plan(15)
+test.plan(13)
 
 function onpublish1(room, message) {
     test.equal(room, 'test', '`room` should be the channel name')
@@ -33,20 +33,17 @@ function onpublish4(room, message) {
     test.fail('should not emit when `options.emit` is `false`')
 }
 
-// executed twice
-sse.on('subscribe', function (room, res) {
+sse.once('subscribe', function (room, res) {
     test.equal(room, 'test', '`room` should be the channel name')
     test.type(res, ctor, '`res` should be a response')
 })
 
-// executed once
-sse.on('unsubscribe', function (room, res) {
+sse.once('unsubscribe', function (room, res) {
     test.equal(room, 'test', '`room` should be the channel name')
     test.type(res, ctor, '`res` should be a response')
 })
 
-// executed once
-sse.on('finish', function () {
+sse.once('finish', function () {
     test.pass('`finish` has been emitted')
     test.equal(this.finished, true, '`finished` should be set to `true`')
     test.same(this.channels, [], 'no more channel should be stored after `finish`')
