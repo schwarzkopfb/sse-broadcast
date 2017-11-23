@@ -14,7 +14,6 @@ You can bind an open response stream to one or more channels - specified by a st
 ## Usage
 
 With [Express](http://expressjs.com/):
-
 ```js
 const app = require('express')(),
       sse = require('sse-broadcast')()
@@ -36,8 +35,18 @@ app.listen(3333)
 If you're interested about the usage with [Koa](http://koajs.com/) or
 a vanilla Node.js server, see the [examples](/examples) folder.
 
-For more convenience, there are helpers to extend `http.ServerResponse.prototype` and to easily [create middleware](/examples/middleware.js) for Connect/Express:
+Send event directly to a specified client (instead to a channel):
+```js
+app.get('/events', function (req, res) {
+    var time = Date.now()
+    
+    setInterval(function () {
+        sse.sendEvent(res, 'elapsed-since-connected', Date.now() - time)      
+    }, 1000)
+})
+```
 
+For more convenience, there are helpers to extend `http.ServerResponse.prototype` and to easily [create middleware](/examples/middleware.js) for Connect/Express:
 ```js
 const app = require('express')(),
       sse = require('sse-broadcast')

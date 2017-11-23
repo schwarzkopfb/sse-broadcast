@@ -98,19 +98,8 @@ SSEBroadcaster.prototype.subscribe = function subscribe(room, req, res) {
     // store the subscription
     list.push(res)
 
-    // disable response buffering to
-    // flush chunks immediately after writes
-    res.socket.setNoDelay(true)
-
-    // set SSE headers
-    setHeader(res, 'connection', 'keep-alive')
-    setHeader(res, 'content-type', 'text/event-stream; charset=' + this.options.encoding)
-    setHeader(res, 'cache-control', 'no-cache')
-
-    // unsubscribe automatically when the response has been finished
-    onFinished(res, this.unsubscribe.bind(this, room, res))
-
     this.emit('subscribe', room, res)
+
     return this
 }
 
@@ -175,13 +164,11 @@ SSEBroadcaster.prototype.subscribers = function subscribers(room) {
  */
 SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, callback) {
     var self     = this,
-        opts     = this.options,
-        retry    = opts.retry,
-        compress = opts.compression
+        compress = this.options.compression
 
     assert(arguments.length >= 2, '`publish()` requires at least two arguments')
     assert.equal(typeof room, 'string', 'first argument must specify the room name')
-    assert(eventOrOptions, 'second argument must specify the event name or options')
+    assert(eventOrOptions, 'event name or options must specified')
 
     if (typeof data === 'function') {
         callback = data
@@ -190,41 +177,9 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
     else if (!callback)
         callback = noop
 
-    if (typeof eventOrOptions === 'object') {
-        assert(!data, 'only one can be provided from `options` and `data`. Use `options.data` instead.')
+    prepareEvent(this, oncomposed, eventOrOptions, data)
 
-        if (eventOrOptions.retry === undefined && retry !== undefined)
-            eventOrOptions.retry = retry
-
-        onprepared(eventOrOptions)
-    }
-    else if (typeof eventOrOptions === 'string')
-        try {
-            onprepared(prepareMessage(eventOrOptions, retry, data))
-        }
-        catch (ex) {
-            this.emit('error', ex)
-            process.nextTick(callback, ex)
-            return this
-        }
-    else
-        throw new TypeError('second argument must specify the event name or options')
-
-    function onprepared(message) {
-        try {
-            oncomposed(composeMessage(message))
-        }
-        catch (ex) {
-            self.emit('error', ex)
-            process.nextTick(callback, ex)
-            return this
-        }
-
-        if (eventOrOptions.emit !== false)
-            self.emit('publish', room, message)
-    }
-
-    function oncomposed(message) {
+    function oncomposed(message, raw) {
         var list = self._channels[ room ]
 
         if (list) {
@@ -232,15 +187,7 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
 
             list.forEach(function (res) {
                 self._compress(res.req, res, function () {
-                    // write SSE response headers if possible
-                    if (!res._sseHeadersSent) {
-                        res._sseHeadersSent = true
-
-                        if (!res.headersSent)
-                            res.writeHead(200)
-                        else
-                            self.emit('warning', 'headers are already sent', res)
-                    }
+                    prepareResponse(res, self, room)
 
                     res.write(message, 'utf8', function done() {
                         --pending || callback(null)
@@ -253,7 +200,80 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
                 })
             })
         }
+
+        if (eventOrOptions.emit !== false)
+            self.emit('publish', room, raw)
     }
+
+    return this
+}
+
+/**
+ * Send a message to a specified subscriber.
+ *
+ * @param {http.ServerResponse} res Response object to send message through.
+ * @param {string|object} eventOrOptions Event name or an options object that specifies the message.
+ * @param {string} [eventOrOptions.id]    Optional event identifier.
+ * @param {string} [eventOrOptions.event] Event name.
+ * @param {string} [eventOrOptions.data]  Optional event payload.
+ * @param {string} [eventOrOptions.retry] Optional retry time for the receiver.
+ * @param {*} [data] Optional event payload.
+ * @param {function(Error?)} [callback]
+ *
+ * @example
+ *
+ * sse.send(res, 'event')
+ * sse.send(res, req, 'event') // when compression is enabled
+ * sse.send(res, 'event', 'data')
+ * sse.send(res, req, 'event', 'data') // when compression is enabled
+ * sse.send(res, { event: 'event', data: 'data' })
+ * sse.send(res, req, { event: 'event', data: 'data' }) // when compression is enabled
+ * sse.send(res, { event: 'event', data: 'data' }, callback)
+ * sse.send(res, req, { event: 'event', data: 'data' }, callback) // when compression is enabled
+ */
+SSEBroadcaster.prototype.send = function send(res, req, eventOrOptions, data, callback) {
+    var self     = this,
+        compress = this.options.compression
+
+    assert(arguments.length >= 2, '`send()` requires at least two arguments')
+    assert(res instanceof http.ServerResponse, 'response must be a descendant of `http.ServerResponse`')
+
+    if (!(req instanceof http.IncomingMessage)) {
+        callback = data
+        data = eventOrOptions
+        eventOrOptions = req
+        req = null
+    }
+
+    assert(eventOrOptions, 'event name or options must specified')
+    assert(!compress || (compress && req), 'when compression is enabled, http request object must be provided')
+
+    if (typeof data === 'function') {
+        callback = data
+        data     = null
+    }
+    else if (!callback)
+        callback = noop
+
+    prepareResponse(res, this)
+    prepareEvent(this, oncomposed, eventOrOptions, data)
+
+    function oncomposed(message, raw) {
+        self._compress(req, res, function () {
+            res.write(message, 'utf8', function () {
+                callback(null)
+            })
+
+            // force the partially-compressed response
+            // to be flushed to the client
+            if (compress)
+                res.flush()
+
+            if (eventOrOptions.emit !== false)
+                self.emit('send', res, raw)
+        })
+    }
+
     return this
 }
 
@@ -337,8 +357,79 @@ SSEBroadcaster.prototype.middleware = function middleware(channelOrOptions) {
 }
 
 function noop() {}
+
 function nocompress(req, res, next) {
     next()
+}
+
+/**
+ * Compose a message and emit related events.
+ *
+ * @param {SSEBroadcaster} self The broadcaster instance to work with.
+ * @param {function(message,raw)} oncomposed Callback to be fired when the message has been composed.
+ * @param {string} room Name of the room.
+ * @param {string|object} eventOrOptions Event name or an options object that specifies the message.
+ * @param {string} [eventOrOptions.id]    Optional event identifier.
+ * @param {string} [eventOrOptions.event] Event name.
+ * @param {string} [eventOrOptions.data]  Optional event payload.
+ * @param {string} [eventOrOptions.retry] Optional retry time for the receiver.
+ * @param {*} [data] Optional event payload.
+ */
+function prepareEvent(self, oncomposed, eventOrOptions, data) {
+    var retry = self.options.retry
+
+    if (typeof eventOrOptions === 'object') {
+        assert(!data, 'only one can be provided from `options` and `data`. Use `options.data` instead.')
+
+        if (eventOrOptions.retry === undefined && retry !== undefined)
+            eventOrOptions.retry = retry
+
+        onprepared(eventOrOptions)
+    }
+    else if (typeof eventOrOptions === 'string')
+        try {
+            onprepared(prepareMessage(eventOrOptions, retry, data))
+        }
+        catch (ex) {
+            self.emit('error', ex)
+        }
+    else
+        throw new TypeError('second argument must specify the event name or options')
+
+    function onprepared(message) {
+        try {
+            oncomposed(composeMessage(message), message)
+        }
+        catch (ex) {
+            self.emit('error', ex)
+        }
+    }
+}
+
+function prepareResponse(res, broadcaster, room) {
+    // disable response buffering to
+    // flush chunks immediately after writes
+    res.socket.setNoDelay(true)
+
+    // unsubscribe automatically when the response has been finished
+    if (room)
+        onFinished(res, broadcaster.unsubscribe.bind(broadcaster, room, res))
+
+    // write SSE response headers if possible
+    if (!res._sseHeadersSent) {
+        res._sseHeadersSent = true
+
+        if (!res.headersSent) {
+            // set SSE headers
+            setHeader(res, 'connection', 'keep-alive')
+            setHeader(res, 'content-type', 'text/event-stream; charset=' + broadcaster.options.encoding)
+            setHeader(res, 'cache-control', 'no-cache')
+
+            res.writeHead(200)
+        }
+        else
+            broadcaster.emit('warning', 'headers are already sent', res)
+    }
 }
 
 /**
@@ -452,11 +543,21 @@ function extendResponseProto(broadcaster) {
     )
 
     var proto = http.ServerResponse.prototype
+
+    proto.sendEvent   = send(broadcaster)
     proto.publish     = publish(broadcaster)
     proto.subscribe   = subscribe(broadcaster)
     proto.unsubscribe = unsubscribe(broadcaster)
 
     return broadcaster
+}
+
+function send(broadcaster) {
+    return function send(req, eventOrOptions, data, callback) {
+        broadcaster.send(this, req, eventOrOptions, data, callback)
+
+        return this
+    }
 }
 
 function publish(broadcaster) {

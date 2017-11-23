@@ -29,6 +29,7 @@ Set the charset parameter of the `Content-Type` http header. Defaults to `utf8`.
 ### Broadcaster.proto(broadcaster)
 
 Extend `http.ServerResponse.prototype` with a set of convenience methods:
+* `sendEvent([req], eventOrOptions, [data], [callback])`
 * `publish(channel, eventOrOptions, [data], [callback])`
 * `subscribe(channel, [req])`
 * `unsubscribe(channel)`
@@ -101,6 +102,22 @@ Note that you can set the message's `data` field by providing an options object 
 
 An optional function to be called when the message is flushed.
 
+### broadcaster.send(response, [request], eventNameOrOptions, [data], [callback])
+
+Send a message directly to the given client. Useful when one needs to work with `last-event-id` headers. (See [issue #3](https://github.com/schwarzkopfb/sse-broadcast/issues/3) for more info.)<br/>
+`request` is only required when response compression is enabled, otherwise identical to `publish()`.<br/>
+Examples of valid signatures:
+```js
+broadcaster.send(res, 'event')
+broadcaster.send(res, req, 'event') // compression enabled
+broadcaster.send(res, 'event', 'data')
+broadcaster.send(res, req, 'event', 'data') // compression enabled
+broadcaster.send(res, { event: 'event', data: 'data' })
+broadcaster.send(res, req, { event: 'event', data: 'data' }) // compression enabled
+broadcaster.send(res, { event: 'event', data: 'data' }, callback)
+broadcaster.send(res, req, { event: 'event', data: 'data' }, callback) // compression enabled
+```
+
 ### broadcaster.end()
 
 End all the ongoing response streams of the broadcaster instance.
@@ -161,6 +178,12 @@ Emitted when a subscription has been removed.
 
 ```js
 function (channel, message) { }
+```
+
+### Event: 'send'
+
+```js
+function (response, message) { }
 ```
 
 ### Event: 'finish'

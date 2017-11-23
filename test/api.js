@@ -142,10 +142,12 @@ test.test('convenience methods', function (test) {
         '`proto()` should accept a broadcaster instance'
     )
 
+    test.type(proto.sendEvent, 'function', 'prototype should be extended with `sendEvent()`')
+    test.type(proto.sendEvent.length, 4, '`sendEvent()` should accept four arguments')
     test.type(proto.publish, 'function', 'prototype should be extended with `subscribe()`')
-    test.type(proto.publish.length, 4, '`publish()` should accept one argument')
+    test.type(proto.publish.length, 4, '`publish()` should accept four arguments')
     test.type(proto.subscribe, 'function', 'prototype should be extended with `subscribe()`')
-    test.type(proto.subscribe.length, 2, '`subscribe()` should accept one argument')
+    test.type(proto.subscribe.length, 2, '`subscribe()` should accept two arguments')
     test.type(proto.unsubscribe, 'function', 'prototype should be extended with `unsubscribe()`')
     test.type(proto.unsubscribe.length, 1, '`unsubscribe()` should accept one argument')
 
@@ -161,13 +163,25 @@ test.test('convenience methods', function (test) {
         function () {
             res.publish()
         },
-        AE, 'arument count should be asserted'
+        AE, 'argument count should be asserted'
     )
     test.doesNotThrow(
         function () {
             res.publish('test', 'test')
         },
-        'arument count should be asserted'
+        'argument count should be asserted'
+    )
+    test.throws(
+        function () {
+            res.sendEvent()
+        },
+        AE, 'argument count should be asserted'
+    )
+    test.doesNotThrow(
+        function () {
+            res.sendEvent('test', 'test')
+        },
+        'argument count should be asserted'
     )
 
     test.end()

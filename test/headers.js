@@ -67,7 +67,7 @@ function doTest(n) {
     var headers = expected[ n++ ]
 
     if (headers)
-        request(n++, headers)
+        request(n, headers)
     else
         app.close()
 }
