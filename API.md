@@ -105,7 +105,7 @@ An optional function to be called when the message is flushed.
 ### broadcaster.send(response, [request], eventNameOrOptions, [data], [callback])
 
 Send a message directly to the given client. Useful when one needs to work with `last-event-id` headers. (See [issue #3](https://github.com/schwarzkopfb/sse-broadcast/issues/3) for more info.)<br/>
-`request` is only required when response compression is enabled, otherwise identical to `publish()`.<br/>
+Instead of a channel name, a `response` object should be given to send the message through. `request` is only required when response compression is enabled, otherwise this method is identical to `publish()`.<br/>
 Examples of valid signatures:
 ```js
 broadcaster.send(res, 'event')

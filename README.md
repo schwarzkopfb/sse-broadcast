@@ -35,7 +35,7 @@ app.listen(3333)
 If you're interested about the usage with [Koa](http://koajs.com/) or
 a vanilla Node.js server, see the [examples](/examples) folder.
 
-Send event directly to a specified client (instead to a channel):
+Send event directly to a specified client (instead of a channel):
 ```js
 app.get('/events', function (req, res) {
     var time = Date.now()
