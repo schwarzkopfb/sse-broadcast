@@ -231,7 +231,8 @@ SSEBroadcaster.prototype.publish = function publish(room, eventOrOptions, data, 
  * sse.send(res, { event: 'event', data: 'data' }, callback)
  * sse.send(res, req, { event: 'event', data: 'data' }, callback) // when compression is enabled
  */
-SSEBroadcaster.prototype.send = function send(res, req, eventOrOptions, data, callback) {
+SSEBroadcaster.prototype.send =
+SSEBroadcaster.prototype.sendEvent = function send(res, req, eventOrOptions, data, callback) {
     var self     = this,
         compress = this.options.compression
 
