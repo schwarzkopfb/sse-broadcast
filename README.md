@@ -1,6 +1,6 @@
 [![view on npm](http://img.shields.io/npm/v/sse-broadcast.svg?style=flat-square)](https://www.npmjs.com/package/sse-broadcast)
 [![downloads per month](http://img.shields.io/npm/dm/sse-broadcast.svg?style=flat-square)](https://www.npmjs.com/package/sse-broadcast)
-[![node version](https://img.shields.io/badge/node-%3E=0.8-brightgreen.svg?style=flat-square)](https://nodejs.org/download)
+[![node version](https://img.shields.io/badge/node-%3E=4-brightgreen.svg?style=flat-square)](https://nodejs.org/download)
 [![build status](https://img.shields.io/travis/schwarzkopfb/sse-broadcast.svg?style=flat-square)](https://travis-ci.org/schwarzkopfb/sse-broadcast)
 [![test coverage](https://img.shields.io/coveralls/schwarzkopfb/sse-broadcast.svg?style=flat-square)](https://coveralls.io/github/schwarzkopfb/sse-broadcast)
 [![license](https://img.shields.io/npm/l/sse-broadcast.svg?style=flat-square)](https://github.com/schwarzkopfb/sse-broadcast/blob/master/LICENSE)
